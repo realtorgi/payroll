@@ -3,7 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seattle English Academy - Teacher Invoice & Payroll System</title>
+    <title>Seattle English Academy - Teacher Invoice & Payroll Management</title>
+    
+    <!-- Open Graph / KakaoTalk Preview Meta Tags -->
+    <meta property="og:title" content="Seattle English Academy | 교사 인보이스 및 급여 정산 시스템">
+    <meta property="og:description" content="매월 5일 정산 자동 관리 시스템 - 선생님 인보이스 제출 및 원장님 급여 관리 포털">
+    <meta property="og:image" content="https://placehold.co/1200x630/1e293b/ffffff?text=Seattle+English+Academy+Payroll">
+    <meta property="og:type" content="website">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -210,7 +217,7 @@
         </div>
     </div>
 
-    <!-- 원장님 관리자 비밀번호 인증 모달 (힌트 및 1234 노출 제거) -->
+    <!-- 원장님 관리자 비밀번호 인증 모달 -->
     <div id="authModal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl border border-slate-200">
             <div class="space-y-1">
@@ -402,7 +409,7 @@
         };
 
         try {
-            const savedPwd = localStorage.getItem('sea_teacher_passwords_v19');
+            const savedPwd = localStorage.getItem('sea_teacher_passwords_v20');
             if (savedPwd) {
                 teacherPasswords = JSON.parse(savedPwd);
             }
@@ -421,11 +428,11 @@
         let db = [];
 
         try {
-            const local = localStorage.getItem('sea_invoices_db_v19');
+            const local = localStorage.getItem('sea_invoices_db_v20');
             if (local) {
                 db = JSON.parse(local);
             } else {
-                localStorage.setItem('sea_invoices_db_v19', JSON.stringify(db));
+                localStorage.setItem('sea_invoices_db_v20', JSON.stringify(db));
             }
         } catch(e) {}
 
@@ -486,7 +493,7 @@
 
             teacherPasswords[loggedInTeacher] = newPwd;
             try {
-                localStorage.setItem('sea_teacher_passwords_v19', JSON.stringify(teacherPasswords));
+                localStorage.setItem('sea_teacher_passwords_v20', JSON.stringify(teacherPasswords));
             } catch(e) {}
 
             closePasswordChangeModal();
@@ -771,7 +778,7 @@
             };
 
             db.push(newInv);
-            try { localStorage.setItem('sea_invoices_db_v19', JSON.stringify(db)); } catch(e) {}
+            try { localStorage.setItem('sea_invoices_db_v20', JSON.stringify(db)); } catch(e) {}
 
             renderMyInvoices();
             showAlert(currentLang === 'ko' ? "제출 완료" : "Submission Complete", loggedInTeacher + (currentLang === 'ko' ? " 선생님의 인보이스가 원장님께 성공적으로 제출되었습니다!" : "'s invoice has been successfully submitted to the Director!"));
@@ -888,7 +895,7 @@
                                     <th class="pb-1 px-2">${currentLang === 'ko' ? '시간/시급' : 'Hours/Rate'}</th>
                                     <th class="pb-1 px-2">${currentLang === 'ko' ? '수업 내용' : 'Topics'}</th>
                                     <th class="pb-1 px-2 text-right">${currentLang === 'ko' ? '합계' : 'Total'}</th>
-                                </tr>
+                                }
                             </thead>
                             <tbody>${rowsHtml}</tbody>
                         </table>
@@ -911,7 +918,7 @@
             const target = db.find(i => i.id === id);
             if (target) {
                 target.status = newStatus;
-                try { localStorage.setItem('sea_invoices_db_v19', JSON.stringify(db)); } catch(e) {}
+                try { localStorage.setItem('sea_invoices_db_v20', JSON.stringify(db)); } catch(e) {}
                 renderDirectorDashboard();
                 if (loggedInTeacher === target.teacherName) {
                     renderMyInvoices();
@@ -925,7 +932,7 @@
             if (!target) return;
             if (confirm(target.teacherName + (currentLang === 'ko' ? " 선생님의 인보이스 내역을 정말 삭제하시겠습니까?" : "'s invoice will be deleted. Are you sure?"))) {
                 db = db.filter(i => i.id !== id);
-                try { localStorage.setItem('sea_invoices_db_v19', JSON.stringify(db)); } catch(e) {}
+                try { localStorage.setItem('sea_invoices_db_v20', JSON.stringify(db)); } catch(e) {}
                 renderDirectorDashboard();
                 if (loggedInTeacher && loggedInTeacher === target.teacherName) {
                     renderMyInvoices();
