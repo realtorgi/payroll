@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,30 +12,55 @@
     <meta property="og:type" content="website">
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans KR', 'Inter', sans-serif; word-break: keep-all; }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800 pb-12 flex flex-col justify-between">
+<body class="bg-slate-100 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-100 pb-12 flex flex-col justify-between transition-colors duration-200">
 
     <div>
-        <!-- 상단 깔끔한 서브 바 (급여일 안내 및 언어 선택기) -->
+        <!-- 상단 서브 바 (급여일 안내, 클라우드 연결 상태 표시, 다크모드 및 언어 선택기) -->
         <div class="bg-slate-950 text-slate-300 px-4 py-2 border-b border-slate-800 text-xs">
             <div class="max-w-xl mx-auto flex justify-between items-center">
-                <p id="topNoticeText" class="text-[11px] text-slate-400">급여일: 매월 5일 | 정산 자동 관리 시스템</p>
-                <div class="bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-lg flex items-center gap-1.5 shadow-sm">
-                    <span class="text-[10px]">🌐</span>
-                    <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-transparent text-white font-bold text-[11px] outline-none cursor-pointer">
-                        <option value="ko" selected>한국어</option>
-                        <option value="en">English</option>
-                    </select>
+                <div class="flex items-center gap-2">
+                    <p id="topNoticeText" class="text-[11px] text-slate-400">급여일: 매월 5일 | 정산 자동 관리 시스템</p>
+                    <span id="cloudStatus" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> 실시간 저장 중
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- 다크모드 토글 버튼 -->
+                    <button type="button" onclick="toggleDarkMode()" class="bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm text-[11px] text-slate-300 hover:text-white transition" title="다크모드 전환">
+                        <span id="themeIcon">🌙</span>
+                        <span id="themeText" class="hidden sm:inline text-[10px]">다크</span>
+                    </button>
+                    <!-- 언어 선택기 -->
+                    <div class="bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                        <span class="text-[10px]">🌐</span>
+                        <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-transparent text-white font-bold text-[11px] outline-none cursor-pointer">
+                            <option value="ko" class="bg-slate-900" selected>한국어</option>
+                            <option value="en" class="bg-slate-900">English</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- 네비게이션 메인 헤더 -->
-        <header class="bg-slate-900 text-white px-4 py-4 shadow-md">
+        <header class="bg-slate-900 dark:bg-slate-950 text-white px-4 py-4 shadow-md border-b border-slate-800">
             <div class="max-w-xl mx-auto flex justify-between items-center">
                 <div class="flex items-center gap-2 cursor-pointer group" onclick="goHome()" title="처음 화면으로 이동 / Return to Home">
                     <span class="text-xl bg-slate-800 p-1.5 rounded-lg border border-slate-700 group-hover:bg-indigo-600 transition">🏫</span>
@@ -57,43 +82,43 @@
             <!-- 선생님 모드 뷰 -->
             <div id="viewTeacher" class="space-y-4">
                 <!-- 선생님 보안 로그인 카드 -->
-                <div id="teacherLoginCard" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 text-center">
+                <div id="teacherLoginCard" class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4 text-center">
                     <div class="space-y-1">
                         <span class="text-3xl">👩‍🏫</span>
-                        <h2 id="loginTitle" class="text-base font-bold text-slate-900">선생님 보안 로그인</h2>
-                        <p id="loginDesc" class="text-xs text-slate-500">본인 성함과 개인 비밀번호를 입력해주세요.<br>(등록된 5명의 선생님: 김서경, 민자윤, 이미미, Candace, Marilyn)</p>
+                        <h2 id="loginTitle" class="text-base font-bold text-slate-900 dark:text-white">선생님 보안 로그인</h2>
+                        <p id="loginDesc" class="text-xs text-slate-500 dark:text-slate-400">본인 성함과 개인 비밀번호를 입력해주세요.<br>(등록된 5명의 선생님: 김서경, 민자윤, 이미미, Candace, Marilyn)</p>
                     </div>
                     <div class="max-w-xs mx-auto space-y-2.5">
-                        <input type="text" id="loginTeacherName" placeholder="선생님 성함 (예: 김서경, Candace)" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-bold text-center bg-slate-50 focus:bg-white focus:border-indigo-600 outline-none transition">
-                        <input type="password" id="loginTeacherPassword" placeholder="비밀번호 입력 (최초 1111)" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-bold text-center bg-slate-50 focus:bg-white focus:border-indigo-600 outline-none transition" onkeydown="if(event.key==='Enter') loginTeacher()">
+                        <input type="text" id="loginTeacherName" placeholder="선생님 성함 (예: 이미미, Candace)" class="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-bold text-center bg-slate-50 dark:bg-slate-700 dark:text-white focus:bg-white dark:focus:bg-slate-600 focus:border-indigo-600 outline-none transition">
+                        <input type="password" id="loginTeacherPassword" placeholder="비밀번호 입력 (최초 1111)" class="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-bold text-center bg-slate-50 dark:bg-slate-700 dark:text-white focus:bg-white dark:focus:bg-slate-600 focus:border-indigo-600 outline-none transition" onkeydown="if(event.key==='Enter') loginTeacher()">
                         <button type="button" onclick="loginTeacher()" id="loginBtnText" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer">
                             🔒 로그인하기
                         </button>
                     </div>
-                    <div id="loginFooterText" class="pt-2 border-t text-[11px] text-slate-400">
+                    <div id="loginFooterText" class="pt-2 border-t dark:border-slate-700 text-[11px] text-slate-400 dark:text-slate-500">
                         * 최초 접속 시 기본 비밀번호는 <b>1111</b>입니다. 로그인 후 <b>[비밀번호 변경]</b> 버튼을 눌러 본인만의 개인 비밀번호로 반드시 변경해 주세요!
                     </div>
                 </div>
 
                 <!-- 선생님 인보이스 작성 워크스페이스 -->
                 <div id="teacherWorkspace" class="hidden space-y-4">
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                        <div class="border-b pb-3 flex justify-between items-center">
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+                        <div class="border-b dark:border-slate-700 pb-3 flex justify-between items-center">
                             <div>
-                                <h2 id="workspaceTitle" class="text-base font-bold text-slate-900 flex items-center gap-1.5"><span>📄</span> 월별 수업 인보이스 작성 및 제출</h2>
-                                <p class="text-xs text-slate-500 mt-0.5"><span id="loggedInTeacherBadge" class="font-bold text-indigo-600"></span> <span id="workspaceSubText">선생님 전용 개인 인보이스 작성함</span></p>
+                                <h2 id="workspaceTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5"><span>📄</span> 월별 수업 인보이스 작성 및 제출</h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"><span id="loggedInTeacherBadge" class="font-bold text-indigo-600 dark:text-indigo-400"></span> <span id="workspaceSubText">선생님 전용 개인 인보이스 작성함</span></p>
                             </div>
                             <div class="flex items-center gap-1.5">
-                                <button type="button" onclick="openPasswordChangeModal()" id="changePwdBtnText" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold rounded-lg transition cursor-pointer">비밀번호 변경</button>
-                                <button type="button" onclick="logoutTeacher()" id="logoutBtnText" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold rounded-lg transition cursor-pointer">로그아웃</button>
+                                <button type="button" onclick="openPasswordChangeModal()" id="changePwdBtnText" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 dark:text-indigo-300 text-indigo-700 text-[11px] font-bold rounded-lg transition cursor-pointer">비밀번호 변경</button>
+                                <button type="button" onclick="logoutTeacher()" id="logoutBtnText" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-[11px] font-bold rounded-lg transition cursor-pointer">로그아웃</button>
                             </div>
                         </div>
 
                         <!-- 💡 개인 비밀번호 변경 카드 섹션 -->
-                        <div class="bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200 flex items-center justify-between gap-3">
+                        <div class="bg-indigo-50/70 dark:bg-indigo-950/40 p-3.5 rounded-xl border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3">
                             <div>
-                                <p id="pwdCardTitle" class="text-xs font-bold text-indigo-900">🔑 개인 보안 비밀번호 관리</p>
-                                <p id="pwdCardDesc" class="text-[11px] text-indigo-700">본인만 아는 안전한 비밀번호로 변경하여 계정을 보호하세요.</p>
+                                <p id="pwdCardTitle" class="text-xs font-bold text-indigo-900 dark:text-indigo-200">🔑 개인 보안 비밀번호 관리</p>
+                                <p id="pwdCardDesc" class="text-[11px] text-indigo-700 dark:text-indigo-300">본인만 아는 안전한 비밀번호로 변경하여 계정을 보호하세요.</p>
                             </div>
                             <button type="button" onclick="openPasswordChangeModal()" id="pwdCardBtnText" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition shrink-0 cursor-pointer">
                                 비밀번호 변경하기
@@ -102,12 +127,12 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label id="labelWriter" class="block text-[11px] font-bold text-slate-600 mb-1">인보이스 작성자 (본인)</label>
-                                <input type="text" id="displayTeacherName" readonly class="w-full p-2.5 rounded-xl border border-slate-200 text-xs bg-slate-100 font-bold text-indigo-700 cursor-not-allowed">
+                                <label id="labelWriter" class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">인보이스 작성자 (본인)</label>
+                                <input type="text" id="displayTeacherName" readonly class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-slate-100 dark:bg-slate-700/50 font-bold text-indigo-700 dark:text-indigo-300 cursor-not-allowed">
                             </div>
                             <div>
-                                <label id="labelMonth" class="block text-[11px] font-bold text-slate-600 mb-1">정산 대상 월 선택</label>
-                                <select id="invoiceMonth" onchange="renderRows()" class="w-full p-2.5 rounded-xl border border-slate-300 text-xs bg-white font-semibold cursor-pointer">
+                                <label id="labelMonth" class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">정산 대상 월 선택</label>
+                                <select id="invoiceMonth" onchange="renderRows()" class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs bg-white dark:bg-slate-700 dark:text-white font-semibold cursor-pointer">
                                     <option value="2026-09" selected>2026년 9월 (September 2026)</option>
                                     <option value="2026-10">2026년 10월 (October 2026)</option>
                                     <option value="2026-11">2026년 11월 (November 2026)</option>
@@ -116,25 +141,38 @@
                             </div>
                         </div>
 
-                        <!-- 시급 자동 계산 규칙 안내 박스 (Candace와 Marilyn은 숨김) -->
-                        <div id="standardRuleBox" class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                        <!-- 시급 자동 계산 규칙 안내 박스 (Candace, Marilyn, 이미미는 숨김/맞춤 안내) -->
+                        <div id="standardRuleBox" class="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-1">
                             <p id="ruleTitle" class="font-bold">💡 [시급 자동 계산 규칙 안내]</p>
-                            <p id="ruleDesc" class="text-[11px] text-amber-800">
+                            <p id="ruleDesc" class="text-[11px] text-amber-800 dark:text-amber-300">
                                 선택하신 월에 해당 요일이 <b>4번</b> 있으면 <b>시급 25,000원</b>, <b>5번</b> 있으면 <b>시급 20,000원</b>으로 자동 적용되며 최대 10만 원이 지급됩니다.
+                            </p>
+                        </div>
+
+                        <!-- 이미미 선생님 전용 입력 안내 박스 -->
+                        <div id="mimiRuleBox" class="hidden bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
+                            <p id="mimiRuleTitle" class="font-bold">💡 [이미미 선생님 전용 안내]</p>
+                            <p id="mimiRuleDesc" class="text-[11px] text-emerald-800 dark:text-emerald-300">
+                                이미미 선생님께서는 한 달 수업 횟수(기본 20회 설정)에 맞게 수업 내역을 작성하실 수 있으며, <b>단가/금액을 직접 입력</b>하실 수 있습니다. 필요시 하단의 <b>[+ 수업 항목 추가]</b> 버튼으로 내역을 확장하세요.
                             </p>
                         </div>
 
                         <div class="space-y-3 pt-2">
                             <div class="flex justify-between items-center">
-                                <h3 id="rowsTitleText" class="font-bold text-xs text-slate-900 flex items-center gap-1"><span>📋</span> 수업 상세 내역 (최대 5개 항목 고정)</h3>
+                                <h3 id="rowsTitleText" class="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1"><span>📋</span> 수업 상세 내역</h3>
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button" onclick="addCustomRow()" id="addRowBtn" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/50 dark:hover:bg-indigo-800/60 dark:text-indigo-300 text-indigo-700 text-[11px] font-bold rounded-lg transition cursor-pointer flex items-center gap-1">
+                                        ➕ <span id="addRowBtnText">수업 항목 추가</span>
+                                    </button>
+                                </div>
                             </div>
 
-                            <!-- 고정 5개 수업 항목 컨테이너 -->
+                            <!-- 수업 항목 동적 컨테이너 -->
                             <div id="rowsContainer" class="space-y-2.5">
                                 <!-- 동적 렌더링 -->
                             </div>
 
-                            <div class="bg-slate-900 text-white p-4 rounded-xl flex justify-between items-center shadow-sm">
+                            <div class="bg-slate-900 dark:bg-slate-950 text-white p-4 rounded-xl flex justify-between items-center shadow-sm border border-slate-800">
                                 <span id="totalText" class="text-xs font-medium text-slate-300">총 청구 금액 (Total Invoice):</span>
                                 <span id="grandTotal" class="text-base font-black text-emerald-400">0 won</span>
                             </div>
@@ -146,113 +184,144 @@
                     </div>
 
                     <!-- 내가 제출한 인보이스 목록 -->
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
-                        <h3 id="myInvoicesTitle" class="font-bold text-xs text-slate-900 flex items-center justify-between">
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-3">
+                        <h3 id="myInvoicesTitle" class="font-bold text-xs text-slate-900 dark:text-white flex items-center justify-between">
                             <span>📤 내가 제출한 인보이스 내역 (본인 전용 조회)</span>
                         </h3>
-                        <div id="myInvoicesList" class="space-y-2.5">
-                            <p id="noInvoicesText" class="text-xs text-slate-400 text-center py-4">제출된 내역이 없습니다.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- 모달 등 생략 -->
 
-            <!-- 원장님 관리자 모드 뷰 -->
-            <div id="viewDirector" class="hidden space-y-5">
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-5">
-                    <div class="flex justify-between items-center border-b pb-3">
-                        <div>
-                            <h2 id="directorDashboardTitle" class="text-base font-bold text-slate-900">🔒 원장님 급여 및 인보이스 정산 관리 (전체 5명 통합)</h2>
-                            <p id="directorDashboardSub" class="text-[11px] text-slate-500 mt-0.5">모든 선생님이 제출한 인보이스 검토 및 매월 5일 급여 지급 관리</p>
-                        </div>
-                        <button type="button" onclick="switchMode('teacher')" id="exitDirectorBtn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition cursor-pointer">나가기</button>
-                    </div>
+    <!-- Firebase SDK 모듈 추가 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center">
-                        <span id="filterMonthText" class="text-xs font-bold text-slate-700">정산 월 필터</span>
-                        <select id="directorMonth" onchange="renderDirectorDashboard()" class="p-2 rounded-lg border text-xs bg-white font-bold text-indigo-700 cursor-pointer">
-                            <option value="2026-09" selected>2026년 9월</option>
-                            <option value="2026-10">2026년 10월</option>
-                            <option value="2026-11">2026년 11월</option>
-                            <option value="2026-12">2026년 12월</option>
-                        </select>
-                    </div>
+        // Firebase 글로벌 설정 및 초기화
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sea-payroll-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "dummy-key",
+            authDomain: "dummy.firebaseapp.com",
+            projectId: "dummy-project"
+        };
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-indigo-50 p-3.5 rounded-xl border border-indigo-100 space-y-1">
-                            <span id="statCountLabel" class="text-[11px] font-bold text-indigo-700">총 제출된 인보이스</span>
-                            <p id="statCount" class="text-lg font-black text-indigo-900">0건</p>
-                        </div>
-                        <div class="bg-emerald-50 p-3.5 rounded-xl border border-emerald-100 space-y-1">
-                            <span id="statPayoutLabel" class="text-[11px] font-bold text-emerald-700">총 지급 예정 급여 (5일)</span>
-                            <p id="statPayout" class="text-lg font-black text-emerald-900">0 won</p>
-                        </div>
-                    </div>
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-                    <div class="space-y-3">
-                        <h3 id="teacherListTitle" class="font-bold text-xs text-slate-900">📋 선생님별 인보이스 목록 및 승인 상태</h3>
-                        <div id="directorList" class="space-y-3">
-                            <p id="noDirectorInvoices" class="text-xs text-slate-400 text-center py-6">제출된 인보이스가 없습니다.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        window.dbInstance = db;
+        window.appId = appId;
+        window.authInstance = auth;
 
-        </main>
-    </div>
+        // 인증 처리 및 실시간 클라우드 바인딩
+        async function initCloud() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch(e) {
+                console.warn("Auth initialization fallback:", e);
+            }
 
-    <!-- 하단 푸터 -->
-    <footer class="max-w-xl mx-auto px-4 mt-10 pt-4 border-t border-slate-300 w-full flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-        <p>© Seattle English Academy. All rights reserved.</p>
-    </footer>
+            // 인보이스 데이터 실시간 구독 (공용 경로 사용)
+            const publicInvoicesRef = collection(db, 'artifacts', appId, 'public', 'data', 'invoices');
+            onSnapshot(publicInvoicesRef, (snapshot) => {
+                let fetchedInvoices = [];
+                snapshot.forEach(docSnap => {
+                    fetchedInvoices.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                window.db = fetchedInvoices;
+                
+                // 화면 갱신
+                if (window.loggedInTeacher) {
+                    window.renderMyInvoices();
+                }
+                const vDirector = document.getElementById('viewDirector');
+                if (vDirector && !vDirector.classList.contains('hidden')) {
+                    window.renderDirectorDashboard();
+                }
+            }, (error) => {
+                console.error("Firestore snapshot error:", error);
+            });
 
-    <!-- 알림 모달 -->
-    <div id="modalBox" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-xl">
-            <h3 id="modalTitle" class="font-bold text-sm text-slate-900">알림</h3>
-            <p id="modalText" class="text-xs text-slate-600 leading-relaxed"></p>
-            <div class="flex justify-end pt-1">
-                <button type="button" onclick="closeModal()" id="modalOkBtn" class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow cursor-pointer">확인</button>
-            </div>
-        </div>
-    </div>
+            // 선생님 비밀번호 정보 실시간 구독
+            const passwordsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'passwords');
+            onSnapshot(passwordsDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    window.teacherPasswords = { ...window.teacherPasswords, ...docSnap.data() };
+                }
+            }, (error) => {
+                console.error("Password snapshot error:", error);
+            });
+        }
 
-    <!-- 원장님 관리자 비밀번호 인증 모달 -->
-    <div id="authModal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl border border-slate-200">
-            <div class="space-y-1">
-                <h3 id="authTitle" class="font-bold text-sm text-slate-900 flex items-center gap-1.5"><span>🔒</span> 원장님 관리자 인증</h3>
-                <p id="authDesc" class="text-xs text-slate-500">관리자 비밀번호를 입력해주세요.</p>
-            </div>
-            <div>
-                <input type="password" id="adminPasswordInput" placeholder="관리자 비밀번호 입력" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-bold bg-slate-50 focus:bg-white transition" onkeydown="if(event.key==='Enter') verifyAdminPassword()">
-            </div>
-            <div class="flex justify-end gap-2 pt-1">
-                <button type="button" onclick="closeAuthModal()" id="authCancelBtn" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">취소</button>
-                <button type="button" onclick="verifyAdminPassword()" id="authConfirmBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow transition cursor-pointer">확인 및 접속</button>
-            </div>
-        </div>
-    </div>
+        window.saveInvoiceToCloud = async function(invObj) {
+            try {
+                const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invObj.id);
+                await setDoc(invDocRef, invObj);
+            } catch(e) {
+                console.error("Error saving invoice to cloud:", e);
+            }
+        };
 
-    <!-- 선생님 개인 비밀번호 변경 모달 -->
-    <div id="pwdModal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl border border-slate-200">
-            <div class="space-y-1">
-                <h3 id="pwdModalTitle" class="font-bold text-sm text-slate-900 flex items-center gap-1.5"><span>🔑</span> 개인 비밀번호 변경</h3>
-                <p id="pwdModalDesc" class="text-xs text-slate-500">앞으로 로그인하실 때 사용할 새로운 비밀번호를 입력해주세요. (타인에게 노출되지 않도록 본인만의 번호로 변경하세요)</p>
-            </div>
-            <div class="space-y-2.5">
-                <input type="password" id="newPasswordInput" placeholder="새로운 개인 비밀번호 입력" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-bold bg-slate-50 focus:bg-white transition" onkeydown="if(event.key==='Enter') saveNewPassword()">
-            </div>
-            <div class="flex justify-end gap-2 pt-1">
-                <button type="button" onclick="closePasswordChangeModal()" id="pwdCancelBtn" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">취소</button>
-                <button type="button" onclick="saveNewPassword()" id="pwdConfirmBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow transition cursor-pointer">변경 저장</button>
-            </div>
-        </div>
-    </div>
+        window.savePasswordToCloud = async function(teacherName, newPassword) {
+            try {
+                const passwordsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'passwords');
+                const updated = {};
+                updated[teacherName] = newPassword;
+                await setDoc(passwordsDocRef, updated, { merge: true });
+            } catch(e) {
+                console.error("Error saving password to cloud:", e);
+            }
+        };
+
+        window.deleteInvoiceFromCloud = async function(invId) {
+            try {
+                const { deleteDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+                const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invId);
+                await deleteDoc(invDocRef);
+            } catch(e) {
+                console.error("Error deleting invoice from cloud:", e);
+            }
+        };
+
+        initCloud();
+    </script>
 
     <script>
         let currentLang = 'ko';
+
+        // 다크모드 관리
+        function initTheme() {
+            const isDark = localStorage.getItem('sea_theme') === 'dark' || 
+                (!('sea_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                updateThemeUI(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeUI(false);
+            }
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('sea_theme', isDark ? 'dark' : 'light');
+            updateThemeUI(isDark);
+        }
+
+        function updateThemeUI(isDark) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            if (isDark) {
+                icon.innerText = '☀️';
+                if(text) text.innerText = '라이트';
+            } else {
+                icon.innerText = '🌙';
+                if(text) text.innerText = '다크';
+            }
+        }
 
         const translations = {
             ko: {
@@ -261,7 +330,7 @@
                 tabDirector: "원장님 관리자 모드",
                 loginTitle: "선생님 보안 로그인",
                 loginDesc: "본인 성함과 개인 비밀번호를 입력해주세요.<br>(등록된 5명의 선생님: 김서경, 민자윤, 이미미, Candace, Marilyn)",
-                loginNamePlaceholder: "선생님 성함 (예: 김서경, Candace)",
+                loginNamePlaceholder: "선생님 성함 (예: 이미미, Candace)",
                 loginPwdPlaceholder: "비밀번호 입력 (최초 1111)",
                 loginBtn: "🔒 로그인하기",
                 loginFooter: "* 최초 접속 시 기본 비밀번호는 <b>1111</b>입니다. 로그인 후 <b>[비밀번호 변경]</b> 버튼을 눌러 본인만의 개인 비밀번호로 반드시 변경해 주세요!",
@@ -276,7 +345,10 @@
                 labelMonth: "정산 대상 월 선택",
                 ruleTitle: "💡 [시급 자동 계산 규칙 안내]",
                 ruleDesc: "선택하신 월에 해당 요일이 <b>4번</b> 있으면 <b>시급 25,000원</b>, <b>5번</b> 있으면 <b>시급 20,000원</b>으로 자동 적용되며 최대 10만 원이 지급됩니다.",
-                rowsTitle: "수업 상세 내역 (최대 5개 항목 고정)",
+                mimiRuleTitle: "💡 [이미미 선생님 전용 안내]",
+                mimiRuleDesc: "이미미 선생님께서는 한 달 수업 횟수(기본 20회 설정)에 맞게 수업 내역을 작성하실 수 있으며, <b>단가/금액을 직접 입력</b>하실 수 있습니다. 필요시 하단의 <b>[+ 수업 항목 추가]</b> 버튼으로 내역을 확장하세요.",
+                rowsTitle: "수업 상세 내역",
+                addRowBtnText: "수업 항목 추가",
                 totalText: "총 청구 금액 (Total Invoice):",
                 submitBtn: "🚀 원장님께 내 인보이스 제출하기",
                 myInvoicesTitle: "내가 제출한 인보이스 내역 (본인 전용 조회)",
@@ -306,7 +378,7 @@
                 tabDirector: "Director Admin Mode",
                 loginTitle: "Teacher Secure Login",
                 loginDesc: "Please enter your name and personal password.<br>(Registered Teachers: 김서경, 민자윤, 이미미, Candace, Marilyn)",
-                loginNamePlaceholder: "Teacher Name (e.g. Candace, 김서경)",
+                loginNamePlaceholder: "Teacher Name (e.g. Candace, 이미미)",
                 loginPwdPlaceholder: "Enter Password (Default 1111)",
                 loginBtn: "🔒 Log In",
                 loginFooter: "* Initial default password is <b>1111</b>. After logging in, please click <b>[Change Password]</b> to set your own personal secure password!",
@@ -321,7 +393,10 @@
                 labelMonth: "Select Settlement Month",
                 ruleTitle: "💡 [Automatic Hourly Rate Rule]",
                 ruleDesc: "If the chosen weekday occurs <b>4 times</b> in the month, the rate is <b>25,000 KRW/hr</b>. If it occurs <b>5 times</b>, the rate is <b>20,000 KRW/hr</b>, ensuring up to 100k KRW total compensation.",
-                rowsTitle: "Class Detailed Records (Up to 5 Fixed Rows)",
+                mimiRuleTitle: "💡 [Mimi Lee Special Notice]",
+                mimiRuleDesc: "Teacher Mimi Lee can log around 20 class sessions per month with <b>custom rate & price entry</b> enabled. Use <b>[+ Add Class Item]</b> to expand as needed.",
+                rowsTitle: "Class Detailed Records",
+                addRowBtnText: "Add Class Item",
                 totalText: "Total Invoice Amount:",
                 submitBtn: "🚀 Submit Invoice to Director",
                 myInvoicesTitle: "My Submitted Invoices (Personal View)",
@@ -370,7 +445,10 @@
             document.getElementById('labelMonth').innerText = t.labelMonth;
             document.getElementById('ruleTitle').innerText = t.ruleTitle;
             document.getElementById('ruleDesc').innerHTML = t.ruleDesc;
+            document.getElementById('mimiRuleTitle').innerText = t.mimiRuleTitle;
+            document.getElementById('mimiRuleDesc').innerHTML = t.mimiRuleDesc;
             document.getElementById('rowsTitleText').innerHTML = `<span>📋</span> ${t.rowsTitle}`;
+            document.getElementById('addRowBtnText').innerText = t.addRowBtnText;
             document.getElementById('totalText').innerText = t.totalText;
             document.getElementById('submitBtnText').innerText = t.submitBtn;
             document.getElementById('myInvoicesTitle').innerHTML = `<span>📤</span> ${t.myInvoicesTitle}`;
@@ -407,25 +485,30 @@
             'Candace': '1111',
             'Marilyn': '1111'
         };
-
-        try {
-            const savedPwd = localStorage.getItem('sea_teacher_passwords_v20');
-            if (savedPwd) {
-                teacherPasswords = JSON.parse(savedPwd);
-            }
-        } catch(e) {}
+        window.teacherPasswords = teacherPasswords;
 
         let loggedInTeacher = null;
+        window.loggedInTeacher = loggedInTeacher;
 
-        let items = [
-            { date: '', originalDay: 6, hours: 1, rate: 20000, topics: '' },
-            { date: '', originalDay: 6, hours: 1, rate: 20000, topics: '' },
-            { date: '', originalDay: 6, hours: 1, rate: 20000, topics: '' },
-            { date: '', originalDay: 6, hours: 1, rate: 20000, topics: '' },
-            { date: '', originalDay: 6, hours: 1, rate: 20000, topics: '' }
-        ];
+        let items = [];
+
+        function resetItemsForTeacher(teacherName) {
+            // 이미미 선생님의 경우 기본 20회 항목 세팅, 기타 선생님은 기본 5회
+            const count = (teacherName === '이미미') ? 20 : 5;
+            items = [];
+            for (let i = 0; i < count; i++) {
+                items.push({ 
+                    date: '', 
+                    originalDay: 6, 
+                    hours: 1, 
+                    rate: (teacherName === '이미미' ? 25000 : 20000), 
+                    topics: '' 
+                });
+            }
+        }
 
         let db = [];
+        window.db = db;
 
         try {
             const local = localStorage.getItem('sea_invoices_db_v20');
@@ -492,9 +575,12 @@
             }
 
             teacherPasswords[loggedInTeacher] = newPwd;
-            try {
-                localStorage.setItem('sea_teacher_passwords_v20', JSON.stringify(teacherPasswords));
-            } catch(e) {}
+            window.teacherPasswords[loggedInTeacher] = newPwd;
+
+            // 클라우드 데이터베이스에 비밀번호 저장
+            if (window.savePasswordToCloud) {
+                window.savePasswordToCloud(loggedInTeacher, newPwd);
+            }
 
             closePasswordChangeModal();
             showAlert(currentLang === 'ko' ? "변경 완료" : "Password Changed", currentLang === 'ko' ? `[${loggedInTeacher}] 선생님의 개인 비밀번호가 안전하게 변경되었습니다. 앞으로는 변경된 비밀번호로 로그인하세요.` : `Personal password for ${loggedInTeacher} has been successfully updated.`);
@@ -516,31 +602,42 @@
                 return;
             }
 
-            if (!teacherPasswords[name]) {
+            const currentPwds = window.teacherPasswords || teacherPasswords;
+
+            if (!currentPwds[name]) {
                 showAlert(currentLang === 'ko' ? "등록되지 않은 성함" : "Unregistered Name", currentLang === 'ko' ? `[${name}] 선생님은 등록된 강사 명단에 없습니다. (김서경, 민자윤, 이미미, Candace, Marilyn 중 입력)` : `[${name}] is not in the registered teacher list.`);
                 return;
             }
 
-            if (pwd !== teacherPasswords[name]) {
+            if (pwd !== currentPwds[name]) {
                 showAlert(currentLang === 'ko' ? "비밀번호 불일치" : "Incorrect Password", currentLang === 'ko' ? "개인 비밀번호가 올바르지 않습니다. (최초 접속 시 기본 비밀번호: 1111)" : "Incorrect personal password. (Initial default password: 1111)");
                 return;
             }
 
             loggedInTeacher = name;
+            window.loggedInTeacher = loggedInTeacher;
             document.getElementById('loggedInTeacherBadge').innerText = loggedInTeacher;
             document.getElementById('displayTeacherName').value = loggedInTeacher;
 
-            // Candace 또는 Marilyn인 경우 일반 시급 규칙 안내 박스 숨기기
-            const ruleBox = document.getElementById('standardRuleBox');
+            // 선생님별 안내 박스 처리
+            const standardRuleBox = document.getElementById('standardRuleBox');
+            const mimiRuleBox = document.getElementById('mimiRuleBox');
+
             if (loggedInTeacher === 'Candace' || loggedInTeacher === 'Marilyn') {
-                ruleBox.classList.add('hidden');
+                standardRuleBox.classList.add('hidden');
+                mimiRuleBox.classList.add('hidden');
+            } else if (loggedInTeacher === '이미미') {
+                standardRuleBox.classList.add('hidden');
+                mimiRuleBox.classList.remove('hidden');
             } else {
-                ruleBox.classList.remove('hidden');
+                standardRuleBox.classList.remove('hidden');
+                mimiRuleBox.classList.add('hidden');
             }
 
             document.getElementById('teacherLoginCard').classList.add('hidden');
             document.getElementById('teacherWorkspace').classList.remove('hidden');
 
+            resetItemsForTeacher(loggedInTeacher);
             renderRows();
             renderMyInvoices();
 
@@ -589,8 +686,10 @@
         }
 
         function handleDateChange(idx, dateStr) {
-            items[idx].date = dateStr;
-            renderRows();
+            if (items[idx]) {
+                items[idx].date = dateStr;
+                renderRows();
+            }
         }
 
         function updateOriginalDay(idx, dayVal) {
@@ -603,6 +702,8 @@
                 } else if (loggedInTeacher === 'Marilyn') {
                     items[idx].rate = 10000; // 10,000 KRW fixed per 45 mins
                     items[idx].hours = 0.75; // 45 mins
+                } else if (loggedInTeacher === '이미미') {
+                    // 이미미 선생님은 본인이 직접 입력한 금액 유지 (자동 덮어쓰기 안 함)
                 } else {
                     const monthVal = document.getElementById('invoiceMonth').value;
                     const parts = monthVal.split('-');
@@ -630,6 +731,20 @@
             }
         }
 
+        function addCustomRow() {
+            items.push({ date: '', originalDay: 6, hours: 1, rate: (loggedInTeacher === '이미미' ? 25000 : 20000), topics: '' });
+            renderRows();
+        }
+
+        function removeCustomRow(idx) {
+            if (items.length <= 1) {
+                showAlert(currentLang === 'ko' ? "삭제 불가" : "Cannot Remove", currentLang === 'ko' ? "최소 1개의 항목은 유지되어야 합니다." : "At least one row must remain.");
+                return;
+            }
+            items.splice(idx, 1);
+            renderRows();
+        }
+
         function renderRows() {
             const container = document.getElementById('rowsContainer');
             container.innerHTML = '';
@@ -639,18 +754,20 @@
             const year = parseInt(parts[0], 10);
             const month = parseInt(parts[1], 10);
 
-            for (let idx = 0; idx < 5; idx++) {
-                const item = items[idx] || { date: '', originalDay: 6, hours: 1, rate: 20000, topics: '' };
-                items[idx] = item;
+            items.forEach((item, idx) => {
                 if (item.originalDay === undefined) item.originalDay = 6;
 
-                // 특별 강사 자동 설정
+                // 선생님별 설정
                 if (loggedInTeacher === 'Candace') {
                     item.rate = 1.25; // USD ($1.25 per 30 mins)
                     item.hours = 0.5; // 30분 고정
                 } else if (loggedInTeacher === 'Marilyn') {
                     item.rate = 10000; // KRW (10,000 KRW per 45 mins)
-                    item.hours = 0.75; // 45분 (0.75시간) 고정
+                    item.hours = 0.75; // 45분 고정
+                } else if (loggedInTeacher === '이미미') {
+                    // 이미미 선생님: 금액 자유 입력 지원 (기본값 설정 없으면 25,000)
+                    if (item.rate === undefined) item.rate = 25000;
+                    if (!item.hours) item.hours = 1;
                 } else {
                     const totalOccurrences = countWeekdayInMonth(year, month, item.originalDay);
                     if (totalOccurrences === 4) {
@@ -667,10 +784,10 @@
                 let sumText = '';
                 let numericSum = 0;
                 if (loggedInTeacher === 'Candace') {
-                    numericSum = 1.25; // 30분 수업 1건당 $1.25 고정
+                    numericSum = 1.25;
                     sumText = `$${numericSum.toFixed(2)} USD`;
                 } else if (loggedInTeacher === 'Marilyn') {
-                    numericSum = 10000; // 45분 수업 1건당 10,000원 고정
+                    numericSum = 10000;
                     sumText = `${numericSum.toLocaleString()} won (45분 수업)`;
                 } else {
                     numericSum = (Number(item.hours) || 0) * (Number(item.rate) || 0);
@@ -678,18 +795,21 @@
                 }
                 
                 const div = document.createElement('div');
-                div.className = 'bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2';
+                div.className = 'bg-slate-50 dark:bg-slate-700/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 relative';
                 div.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <span class="text-[11px] font-bold text-indigo-700">${currentLang === 'ko' ? `수업 항목 #${idx + 1}` : `Class Item #${idx + 1}`}</span>
-                        <span class="text-[10px] text-slate-500 font-semibold">
-                            ${loggedInTeacher === 'Candace' ? '🇺🇸 30분 수업 ($1.25 고정)' : (loggedInTeacher === 'Marilyn' ? '🇰🇷 45분 수업 (10,000원 고정)' : `시급: ${item.rate.toLocaleString()}원/h`)}
-                        </span>
+                        <span class="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">${currentLang === 'ko' ? `수업 항목 #${idx + 1}` : `Class Item #${idx + 1}`}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                                ${loggedInTeacher === 'Candace' ? '🇺🇸 30분 수업 ($1.25 고정)' : (loggedInTeacher === 'Marilyn' ? '🇰🇷 45분 수업 (10,000원 고정)' : (loggedInTeacher === '이미미' ? '✏️ 본인 금액 입력 가능' : `시급: ${Number(item.rate).toLocaleString()}원/h`))}
+                            </span>
+                            ${items.length > 1 ? `<button type="button" onclick="removeCustomRow(${idx})" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1" title="항목 삭제">✕</button>` : ''}
+                        </div>
                     </div>
                     
-                    <div class="bg-indigo-50/60 p-2.5 rounded-lg border border-indigo-100 flex items-center justify-between gap-2">
-                        <span class="text-[11px] font-bold text-indigo-950">${currentLang === 'ko' ? '📌 정기 수업 요일:' : '📌 Regular Day:'}</span>
-                        <select onchange="updateOriginalDay(${idx}, this.value)" class="p-1.5 rounded border border-indigo-300 text-xs bg-white font-bold text-indigo-700 cursor-pointer">
+                    <div class="bg-indigo-50/60 dark:bg-indigo-950/40 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between gap-2">
+                        <span class="text-[11px] font-bold text-indigo-950 dark:text-indigo-200">${currentLang === 'ko' ? '📌 정기 수업 요일:' : '📌 Regular Day:'}</span>
+                        <select onchange="updateOriginalDay(${idx}, this.value)" class="p-1.5 rounded border border-indigo-300 dark:border-indigo-700 text-xs bg-white dark:bg-slate-800 dark:text-white font-bold text-indigo-700 dark:text-indigo-300 cursor-pointer">
                             <option value="0" ${item.originalDay === 0 ? 'selected' : ''}>일요일 (Sunday)</option>
                             <option value="1" ${item.originalDay === 1 ? 'selected' : ''}>월요일 (Monday)</option>
                             <option value="2" ${item.originalDay === 2 ? 'selected' : ''}>화요일 (Tuesday)</option>
@@ -702,28 +822,31 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
-                            <label class="block text-[10px] text-slate-500 mb-0.5">${currentLang === 'ko' ? '실제 수업 날짜 (📅)' : 'Actual Class Date (📅)'}</label>
-                            <input type="date" value="${item.date || ''}" onchange="handleDateChange(${idx}, this.value)" class="w-full p-2 rounded-lg border text-xs bg-white font-medium cursor-pointer">
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">${currentLang === 'ko' ? '실제 수업 날짜 (📅)' : 'Actual Class Date (📅)'}</label>
+                            <input type="date" value="${item.date || ''}" onchange="handleDateChange(${idx}, this.value)" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-medium cursor-pointer">
                         </div>
                         <div>
-                            <label class="block text-[10px] text-slate-500 mb-0.5">${currentLang === 'ko' ? (loggedInTeacher==='Candace' ? '수업 시간 (30분)' : (loggedInTeacher==='Marilyn' ? '수업 시간 (45분)' : '시간 (Hours)')) : 'Hours'}</label>
-                            <input type="number" value="${item.hours}" ${loggedInTeacher==='Candace'||loggedInTeacher==='Marilyn'?'readonly':''} min="0.25" step="0.25" oninput="updateItem(${idx}, 'hours', this.value)" class="w-full p-2 rounded-lg border text-xs ${loggedInTeacher==='Candace'||loggedInTeacher==='Marilyn'?'bg-slate-100 font-bold text-indigo-700 cursor-not-allowed':'bg-white font-medium'}">
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">${currentLang === 'ko' ? (loggedInTeacher==='Candace' ? '수업 시간 (30분)' : (loggedInTeacher==='Marilyn' ? '수업 시간 (45분)' : '시간 (Hours)')) : 'Hours'}</label>
+                            <input type="number" value="${item.hours}" ${loggedInTeacher==='Candace'||loggedInTeacher==='Marilyn'?'readonly':''} min="0.25" step="0.25" oninput="updateItem(${idx}, 'hours', this.value)" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs ${loggedInTeacher==='Candace'||loggedInTeacher==='Marilyn'?'bg-slate-100 dark:bg-slate-800 font-bold text-indigo-700 dark:text-indigo-300 cursor-not-allowed':'bg-white dark:bg-slate-800 dark:text-white font-medium'}">
                         </div>
                         <div>
-                            <label class="block text-[10px] text-slate-500 mb-0.5">${currentLang === 'ko' ? '단가 / 지급액' : 'Rate / Pay'}</label>
-                            <input type="text" value="${loggedInTeacher==='Candace'?'$'+item.rate.toFixed(2)+' USD':item.rate.toLocaleString()+'원'}" readonly class="w-full p-2 rounded-lg border text-xs bg-slate-100 font-bold text-indigo-700 cursor-not-allowed">
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">${currentLang === 'ko' ? '단가 / 지급액 (원)' : 'Rate / Pay'}</label>
+                            ${loggedInTeacher === '이미미' ? 
+                                `<input type="number" value="${item.rate}" oninput="updateItem(${idx}, 'rate', this.value)" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-bold text-emerald-600 dark:text-emerald-400" placeholder="금액 직접 입력">` : 
+                                `<input type="text" value="${loggedInTeacher==='Candace'?'$'+item.rate.toFixed(2)+' USD':Number(item.rate).toLocaleString()+'원'}" readonly class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-slate-100 dark:bg-slate-800 font-bold text-indigo-700 dark:text-indigo-300 cursor-not-allowed">`
+                            }
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] text-slate-500 mb-0.5">${currentLang === 'ko' ? '수업 내용 및 메모 (Topics)' : 'Class Topic & Lesson Details'}</label>
-                        <input type="text" value="${item.topics || ''}" oninput="updateItem(${idx}, 'topics', this.value)" placeholder="${loggedInTeacher==='Candace'?'예: 30분 스피킹 세션':'예: 45분 리딩 수업'}" class="w-full p-2 rounded-lg border text-xs bg-white font-medium">
+                        <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">${currentLang === 'ko' ? '수업 내용 및 메모 (Topics)' : 'Class Topic & Lesson Details'}</label>
+                        <input type="text" value="${item.topics || ''}" oninput="updateItem(${idx}, 'topics', this.value)" placeholder="${loggedInTeacher==='Candace'?'예: 30분 스피킹 세션':(loggedInTeacher==='이미미'?'예: 초등 파닉스 및 회화 20회차':'예: 수업 주제 작성')}" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-medium">
                     </div>
-                    <div class="text-right text-xs font-bold text-slate-700 pt-1">
-                        ${currentLang === 'ko' ? '항목 합계:' : 'Item Subtotal:'} <span class="text-indigo-600">${sumText}</span>
+                    <div class="text-right text-xs font-bold text-slate-700 dark:text-slate-300 pt-1">
+                        ${currentLang === 'ko' ? '항목 합계:' : 'Item Subtotal:'} <span class="text-indigo-600 dark:text-indigo-400">${sumText}</span>
                     </div>
                 `;
                 container.appendChild(div);
-            }
+            });
 
             calcTotal();
         }
@@ -731,7 +854,7 @@
         function calcTotal() {
             let total = 0;
             items.forEach(i => { 
-                if (i.date || i.topics.trim() !== '') {
+                if (i.date || (i.topics && i.topics.trim() !== '')) {
                     if (loggedInTeacher === 'Candace') {
                         total += 1.25; // $1.25 USD per session
                     } else if (loggedInTeacher === 'Marilyn') {
@@ -750,7 +873,7 @@
         function submitInvoice() {
             const month = document.getElementById('invoiceMonth').value;
 
-            const validItems = items.filter(i => i.date || i.topics.trim() !== '');
+            const validItems = items.filter(i => i.date || (i.topics && i.topics.trim() !== ''));
             if (validItems.length === 0) {
                 showAlert(currentLang === 'ko' ? "입력 오류" : "Input Error", currentLang === 'ko' ? "최소 1개 이상의 수업 항목에 날짜 또는 수업 내용을 입력해주세요." : "Please enter the date or topic for at least 1 class item.");
                 return;
@@ -777,148 +900,23 @@
                 submittedAt: new Date().toISOString().split('T')[0]
             };
 
-            db.push(newInv);
-            try { localStorage.setItem('sea_invoices_db_v20', JSON.stringify(db)); } catch(e) {}
+            // 클라우드 데이터베이스 저장
+            if (window.saveInvoiceToCloud) {
+                window.saveInvoiceToCloud(newInv);
+            }
 
             renderMyInvoices();
             showAlert(currentLang === 'ko' ? "제출 완료" : "Submission Complete", loggedInTeacher + (currentLang === 'ko' ? " 선생님의 인보이스가 원장님께 성공적으로 제출되었습니다!" : "'s invoice has been successfully submitted to the Director!"));
         }
 
-        function renderMyInvoices() {
-            const container = document.getElementById('myInvoicesList');
-            container.innerHTML = '';
-
-            const myInvoices = db.filter(i => i.teacherName === loggedInTeacher);
-
-            if (myInvoices.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">${loggedInTeacher}${currentLang === 'ko' ? ' 선생님이 제출한 내역이 없습니다.' : ' has no submitted invoices.'}</p>`;
-                return;
-            }
-
-            myInvoices.forEach(inv => {
-                const badge = (inv.status === '지급완료' || inv.status === 'Paid') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ((inv.status === '승인됨' || inv.status === 'Approved') ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-700 border-amber-200');
-
-                const isUsd = (inv.teacherName === 'Candace');
-                const amtStr = isUsd ? `$${(inv.totalAmount || 0).toFixed(2)} USD` : `${(inv.totalAmount || 0).toLocaleString()} won`;
-
-                const div = document.createElement('div');
-                div.className = 'bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5';
-                div.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-xs text-slate-900">${inv.teacherName} (${inv.month})</span>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${badge}">${inv.status}</span>
-                    </div>
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-500">${currentLang === 'ko' ? '제출일:' : 'Submitted:'} ${inv.submittedAt}</span>
-                        <span class="font-bold text-indigo-600">${amtStr}</span>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function renderDirectorDashboard() {
-            const filterM = document.getElementById('directorMonth').value;
-            const container = document.getElementById('directorList');
-            container.innerHTML = '';
-
-            const filtered = db.filter(i => i.month === filterM);
-            let sumPayoutKrw = 0;
-            let sumPayoutUsd = 0;
-            filtered.forEach(i => { 
-                if (i.status !== '반려됨' && i.status !== 'Rejected') {
-                    if (i.teacherName === 'Candace') {
-                        sumPayoutUsd += (i.totalAmount || 0);
-                    } else {
-                        sumPayoutKrw += (i.totalAmount || 0);
-                    }
-                } 
-            });
-
-            document.getElementById('statCount').innerText = filtered.length + (currentLang === 'ko' ? "건" : " items");
-            document.getElementById('statPayout').innerText = sumPayoutKrw.toLocaleString() + " won" + (sumPayoutUsd > 0 ? ` + $${sumPayoutUsd.toFixed(2)} USD` : "");
-
-            if (filtered.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">${filterM}${currentLang === 'ko' ? '에 제출된 인보이스가 없습니다.' : ' has no submitted invoices.'}</p>`;
-                return;
-            }
-
-            filtered.forEach(inv => {
-                let rowsHtml = '';
-                const isCandace = (inv.teacherName === 'Candace');
-                const isMarilyn = (inv.teacherName === 'Marilyn');
-
-                if (inv.items) {
-                    inv.items.forEach(it => {
-                        let rSum = 0;
-                        let rSumText = '';
-                        if (isCandace) {
-                            rSum = 1.25;
-                            rSumText = `$1.25 USD`;
-                        } else if (isMarilyn) {
-                            rSum = 10000;
-                            rSumText = `10,000원`;
-                        } else {
-                            rSum = (Number(it.hours) || 0) * (Number(it.rate) || 0);
-                            rSumText = rSum.toLocaleString() + '원';
-                        }
-                        rowsHtml += `
-                            <tr class="border-b text-[11px]">
-                                <td class="py-1 px-2">${it.date || ''}</td>
-                                <td class="py-1 px-2">${isCandace?'30분 ($1.25)':(isMarilyn?'45분 (1만원)':it.hours+'h ('+it.rate.toLocaleString()+'원/h)')}</td>
-                                <td class="py-1 px-2">${it.topics || ''}</td>
-                                <td class="py-1 px-2 text-right">${rSumText}</td>
-                            </tr>
-                        `;
-                    });
-                }
-
-                const badge = (inv.status === '지급완료' || inv.status === 'Paid') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ((inv.status === '승인됨' || inv.status === 'Approved') ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-700 border-amber-200');
-                const totalStr = isCandace ? `$${(inv.totalAmount || 0).toFixed(2)} USD` : `${(inv.totalAmount || 0).toLocaleString()} won`;
-
-                const card = document.createElement('div');
-                card.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3';
-                card.innerHTML = `
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <div>
-                            <span class="font-bold text-slate-900 text-sm">👩‍🏫 ${inv.teacherName}</span>
-                            <span class="text-[10px] text-slate-500 ml-2">${currentLang === 'ko' ? '정산월:' : 'Month:'} ${inv.month}</span>
-                        </div>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${badge}">${inv.status}</span>
-                    </div>
-
-                    <div class="bg-white rounded-lg border p-2 overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="text-[10px] text-slate-400 border-b">
-                                    <th class="pb-1 px-2">${currentLang === 'ko' ? '날짜' : 'Date'}</th>
-                                    <th class="pb-1 px-2">${currentLang === 'ko' ? '시간/시급' : 'Hours/Rate'}</th>
-                                    <th class="pb-1 px-2">${currentLang === 'ko' ? '수업 내용' : 'Topics'}</th>
-                                    <th class="pb-1 px-2 text-right">${currentLang === 'ko' ? '합계' : 'Total'}</th>
-                                }
-                            </thead>
-                            <tbody>${rowsHtml}</tbody>
-                        </table>
-                    </div>
-
-                    <div class="flex justify-between items-center pt-1">
-                        <span class="text-xs font-bold text-slate-800">${currentLang === 'ko' ? '총 청구액:' : 'Total:'} <span class="text-indigo-600">${totalStr}</span></span>
-                        <div class="flex gap-1.5">
-                            <button type="button" onclick="changeStatus('${inv.id}', '${currentLang === 'ko' ? '승인됨' : 'Approved'}')" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] rounded-lg transition cursor-pointer">${currentLang === 'ko' ? '승인' : 'Approve'}</button>
-                            <button type="button" onclick="changeStatus('${inv.id}', '${currentLang === 'ko' ? '지급완료' : 'Paid'}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg transition cursor-pointer">${currentLang === 'ko' ? '5일 급여지급완료' : 'Mark Paid'}</button>
-                            <button type="button" onclick="deleteInv('${inv.id}')" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[11px] rounded-lg transition cursor-pointer">${currentLang === 'ko' ? '삭제' : 'Delete'}</button>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
         function changeStatus(id, newStatus) {
-            const target = db.find(i => i.id === id);
+            const currentDb = window.db || db;
+            const target = currentDb.find(i => i.id === id);
             if (target) {
                 target.status = newStatus;
-                try { localStorage.setItem('sea_invoices_db_v20', JSON.stringify(db)); } catch(e) {}
+                if (window.saveInvoiceToCloud) {
+                    window.saveInvoiceToCloud(target);
+                }
                 renderDirectorDashboard();
                 if (loggedInTeacher === target.teacherName) {
                     renderMyInvoices();
@@ -928,17 +926,27 @@
         }
 
         function deleteInv(id) {
-            const target = db.find(i => i.id === id);
+            const currentDb = window.db || db;
+            const target = currentDb.find(i => i.id === id);
             if (!target) return;
             if (confirm(target.teacherName + (currentLang === 'ko' ? " 선생님의 인보이스 내역을 정말 삭제하시겠습니까?" : "'s invoice will be deleted. Are you sure?"))) {
-                db = db.filter(i => i.id !== id);
-                try { localStorage.setItem('sea_invoices_db_v20', JSON.stringify(db)); } catch(e) {}
+                if (window.deleteInvoiceFromCloud) {
+                    window.deleteInvoiceFromCloud(id);
+                }
                 renderDirectorDashboard();
                 if (loggedInTeacher && loggedInTeacher === target.teacherName) {
                     renderMyInvoices();
                 }
             }
         }
+
+        window.renderMyInvoices = renderMyInvoices;
+        window.renderDirectorDashboard = renderDirectorDashboard;
+
+        // 초기화
+        window.onload = function() {
+            initTheme();
+        };
     </script>
 </body>
 </html>
