@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seattle English Academy - Teacher Invoice & Payroll Management</title>
     
-    <!-- Open Graph / KakaoTalk Preview Meta Tags -->
+    <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="Seattle English Academy | 교사 인보이스 및 급여 정산 시스템">
     <meta property="og:description" content="매월 5일 정산 자동 관리 시스템 - 선생님 인보이스 제출 및 원장님 급여 관리 포털">
     <meta property="og:image" content="https://placehold.co/1200x630/1e293b/ffffff?text=Seattle+English+Academy+Payroll">
@@ -27,13 +27,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans KR', 'Inter', sans-serif; word-break: keep-all; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-100 pb-12 flex flex-col justify-between transition-colors duration-200">
 
     <div>
-        <!-- 상단 서브 바 (급여일 안내, 클라우드 연결 상태 표시, 다크모드 및 언어 선택기) -->
-        <div class="bg-slate-950 text-slate-300 px-4 py-2 border-b border-slate-800 text-xs">
+        <!-- 상단 서브 바 (급여일 안내, 클라우드 연결 상태, 다크모드 및 언어 선택기) -->
+        <div class="bg-slate-950 text-slate-300 px-4 py-2 border-b border-slate-800 text-xs no-print">
             <div class="max-w-xl mx-auto flex justify-between items-center">
                 <div class="flex items-center gap-2">
                     <p id="topNoticeText" class="text-[11px] text-slate-400">급여일: 매월 5일 | 정산 자동 관리 시스템</p>
@@ -60,7 +64,7 @@
         </div>
 
         <!-- 네비게이션 메인 헤더 -->
-        <header class="bg-slate-900 dark:bg-slate-950 text-white px-4 py-4 shadow-md border-b border-slate-800">
+        <header class="bg-slate-900 dark:bg-slate-950 text-white px-4 py-4 shadow-md border-b border-slate-800 no-print">
             <div class="max-w-xl mx-auto flex justify-between items-center">
                 <div class="flex items-center gap-2 cursor-pointer group" onclick="goHome()" title="처음 화면으로 이동 / Return to Home">
                     <span class="text-xl bg-slate-800 p-1.5 rounded-lg border border-slate-700 group-hover:bg-indigo-600 transition">🏫</span>
@@ -70,7 +74,7 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <button type="button" onclick="openAuthModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 transition flex items-center gap-1 cursor-pointer">
+                    <button type="button" onclick="openAuthModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md border border-indigo-500 transition flex items-center gap-1 cursor-pointer">
                         🔒 <span id="tabDirectorText">원장님 관리자 모드</span>
                     </button>
                 </div>
@@ -114,7 +118,7 @@
                             </div>
                         </div>
 
-                        <!-- 💡 개인 비밀번호 변경 카드 섹션 -->
+                        <!-- 개인 비밀번호 변경 카드 섹션 -->
                         <div class="bg-indigo-50/70 dark:bg-indigo-950/40 p-3.5 rounded-xl border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3">
                             <div>
                                 <p id="pwdCardTitle" class="text-xs font-bold text-indigo-900 dark:text-indigo-200">🔑 개인 보안 비밀번호 관리</p>
@@ -141,7 +145,7 @@
                             </div>
                         </div>
 
-                        <!-- 시급 자동 계산 규칙 안내 박스 (Candace, Marilyn, 이미미는 숨김/맞춤 안내) -->
+                        <!-- 시급 자동 계산 규칙 안내 박스 -->
                         <div id="standardRuleBox" class="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-1">
                             <p id="ruleTitle" class="font-bold">💡 [시급 자동 계산 규칙 안내]</p>
                             <p id="ruleDesc" class="text-[11px] text-amber-800 dark:text-amber-300">
@@ -149,7 +153,7 @@
                             </p>
                         </div>
 
-                        <!-- 이미미 선생님 전용 입력 안내 박스 -->
+                        <!-- 이미미 선생님 전용 안내 박스 -->
                         <div id="mimiRuleBox" class="hidden bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
                             <p id="mimiRuleTitle" class="font-bold">💡 [이미미 선생님 전용 안내]</p>
                             <p id="mimiRuleDesc" class="text-[11px] text-emerald-800 dark:text-emerald-300">
@@ -188,15 +192,112 @@
                         <h3 id="myInvoicesTitle" class="font-bold text-xs text-slate-900 dark:text-white flex items-center justify-between">
                             <span>📤 내가 제출한 인보이스 내역 (본인 전용 조회)</span>
                         </h3>
-    <!-- 모달 등 생략 -->
+                        <div id="myInvoicesList" class="space-y-2">
+                            <!-- 내가 제출한 인보이스 동적 렌더링 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    <!-- Firebase SDK 모듈 추가 -->
+            <!-- 원장님 모드 대시보드 뷰 -->
+            <div id="viewDirector" class="hidden space-y-4">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+                    <div class="border-b dark:border-slate-700 pb-3 flex justify-between items-center">
+                        <div>
+                            <h2 id="directorDashboardTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                👑 원장님 급여 및 인보이스 정산 관리 (전체 5명 통합)
+                            </h2>
+                            <p id="directorDashboardSub" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                모든 선생님이 제출한 인보이스 검토 및 매월 5일 급여 지급 관리
+                            </p>
+                        </div>
+                        <button type="button" onclick="switchMode('teacher')" id="exitDirectorBtn" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer">
+                            나가기
+                        </button>
+                    </div>
+
+                    <!-- 정산 필터 및 총계 통계 카드 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <label id="filterMonthText" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">정산 월 필터</label>
+                            <select id="directorFilterMonth" onchange="renderDirectorDashboard()" class="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 text-xs font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-white cursor-pointer">
+                                <option value="ALL">전체 (All Months)</option>
+                                <option value="2026-09" selected>2026년 9월</option>
+                                <option value="2026-10">2026년 10월</option>
+                                <option value="2026-11">2026년 11월</option>
+                                <option value="2026-12">2026년 12월</option>
+                            </select>
+                        </div>
+                        <div class="bg-indigo-50/50 dark:bg-indigo-950/30 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900">
+                            <span id="statCountLabel" class="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 block">총 제출된 인보이스</span>
+                            <span id="directorTotalCount" class="text-lg font-black text-indigo-900 dark:text-indigo-100">0 건</span>
+                        </div>
+                        <div class="bg-emerald-50/50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900">
+                            <span id="statPayoutLabel" class="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 block">총 지급 예정 급여 (5일)</span>
+                            <span id="directorTotalPayout" class="text-lg font-black text-emerald-700 dark:text-emerald-400">0 원</span>
+                        </div>
+                    </div>
+
+                    <!-- 선생님 제출 인보이스 리스트 -->
+                    <div class="space-y-3 pt-2">
+                        <h3 id="teacherListTitle" class="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1">
+                            📋 선생님별 인보이스 목록 및 승인 상태
+                        </h3>
+                        <div id="directorInvoiceList" class="space-y-3">
+                            <!-- 동적 렌더링 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- 원장님 비밀번호 인증 모달 -->
+    <div id="authModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 max-w-xs w-full p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 space-y-4 text-center">
+            <div class="space-y-1">
+                <h3 id="authTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5">🔒 원장님 관리자 인증</h3>
+                <p id="authDesc" class="text-xs text-slate-500 dark:text-slate-400">관리자 비밀번호를 입력해주세요.</p>
+            </div>
+            <input type="password" id="adminPasswordInput" placeholder="비밀번호 입력" class="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-bold text-center bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:bg-white outline-none" onkeydown="if(event.key==='Enter') verifyAdminPassword()">
+            <div class="flex gap-2">
+                <button type="button" onclick="closeAuthModal()" id="authCancelBtn" class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition">취소</button>
+                <button type="button" onclick="verifyAdminPassword()" id="authConfirmBtn" class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition">확인 및 접속</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비밀번호 변경 모달 -->
+    <div id="pwdModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 max-w-xs w-full p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 space-y-4 text-center">
+            <div class="space-y-1">
+                <h3 id="pwdModalTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5">🔑 개인 비밀번호 변경</h3>
+                <p id="pwdModalDesc" class="text-xs text-slate-500 dark:text-slate-400">앞으로 로그인하실 때 사용할 새로운 비밀번호를 입력해주세요.</p>
+            </div>
+            <input type="password" id="newPasswordInput" placeholder="새 비밀번호 입력" class="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-bold text-center bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white outline-none" onkeydown="if(event.key==='Enter') saveNewPassword()">
+            <div class="flex gap-2">
+                <button type="button" onclick="closePasswordChangeModal()" id="pwdCancelBtn" class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition">취소</button>
+                <button type="button" onclick="saveNewPassword()" id="pwdConfirmBtn" class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition">변경 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 알림 모달 -->
+    <div id="modalBox" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 max-w-xs w-full p-5 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 space-y-3 text-center">
+            <h3 id="modalTitle" class="text-base font-bold text-slate-900 dark:text-white">알림</h3>
+            <p id="modalText" class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed"></p>
+            <button type="button" onclick="closeModal()" id="modalOkBtn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition">확인</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK 모듈 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase 글로벌 설정 및 초기화
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'sea-payroll-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "dummy-key",
@@ -212,7 +313,6 @@
         window.appId = appId;
         window.authInstance = auth;
 
-        // 인증 처리 및 실시간 클라우드 바인딩
         async function initCloud() {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -224,7 +324,7 @@
                 console.warn("Auth initialization fallback:", e);
             }
 
-            // 인보이스 데이터 실시간 구독 (공용 경로 사용)
+            // 인보이스 데이터 실시간 구독
             const publicInvoicesRef = collection(db, 'artifacts', appId, 'public', 'data', 'invoices');
             onSnapshot(publicInvoicesRef, (snapshot) => {
                 let fetchedInvoices = [];
@@ -233,7 +333,6 @@
                 });
                 window.db = fetchedInvoices;
                 
-                // 화면 갱신
                 if (window.loggedInTeacher) {
                     window.renderMyInvoices();
                 }
@@ -278,7 +377,6 @@
 
         window.deleteInvoiceFromCloud = async function(invId) {
             try {
-                const { deleteDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
                 const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invId);
                 await deleteDoc(invDocRef);
             } catch(e) {
@@ -289,10 +387,10 @@
         initCloud();
     </script>
 
+    <!-- 핵심 로직 및 UI 인터랙션 스크립트 -->
     <script>
         let currentLang = 'ko';
 
-        // 다크모드 관리
         function initTheme() {
             const isDark = localStorage.getItem('sea_theme') === 'dark' || 
                 (!('sea_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -368,7 +466,7 @@
                 authCancelBtn: "취소",
                 authConfirmBtn: "확인 및 접속",
                 pwdModalTitle: "개인 비밀번호 변경",
-                pwdModalDesc: "앞으로 로그인하실 때 사용할 새로운 비밀번호를 입력해주세요. (타인에게 노출되지 않도록 본인만의 번호로 변경하세요)",
+                pwdModalDesc: "앞으로 로그인하실 때 사용할 새로운 비밀번호를 입력해주세요.",
                 pwdCancelBtn: "취소",
                 pwdConfirmBtn: "변경 저장"
             },
@@ -381,7 +479,7 @@
                 loginNamePlaceholder: "Teacher Name (e.g. Candace, 이미미)",
                 loginPwdPlaceholder: "Enter Password (Default 1111)",
                 loginBtn: "🔒 Log In",
-                loginFooter: "* Initial default password is <b>1111</b>. After logging in, please click <b>[Change Password]</b> to set your own personal secure password!",
+                loginFooter: "* Initial default password is <b>1111</b>. Click <b>[Change Password]</b> to set your private password!",
                 workspaceTitle: "Monthly Class Invoice Creation & Submission",
                 workspaceSub: "Personal Invoice Workspace",
                 changePwdBtn: "Change Password",
@@ -392,9 +490,9 @@
                 labelWriter: "Invoice Writer (You)",
                 labelMonth: "Select Settlement Month",
                 ruleTitle: "💡 [Automatic Hourly Rate Rule]",
-                ruleDesc: "If the chosen weekday occurs <b>4 times</b> in the month, the rate is <b>25,000 KRW/hr</b>. If it occurs <b>5 times</b>, the rate is <b>20,000 KRW/hr</b>, ensuring up to 100k KRW total compensation.",
+                ruleDesc: "4 times/month: 25,000 KRW/hr. 5 times/month: 20,000 KRW/hr.",
                 mimiRuleTitle: "💡 [Mimi Lee Special Notice]",
-                mimiRuleDesc: "Teacher Mimi Lee can log around 20 class sessions per month with <b>custom rate & price entry</b> enabled. Use <b>[+ Add Class Item]</b> to expand as needed.",
+                mimiRuleDesc: "Custom rate entry enabled. Use [+ Add Class Item] to add sessions.",
                 rowsTitle: "Class Detailed Records",
                 addRowBtnText: "Add Class Item",
                 totalText: "Total Invoice Amount:",
@@ -416,7 +514,7 @@
                 authCancelBtn: "Cancel",
                 authConfirmBtn: "Confirm & Enter",
                 pwdModalTitle: "Change Personal Password",
-                pwdModalDesc: "Please enter your new password for future logins (keep it private).",
+                pwdModalDesc: "Please enter your new password for future logins.",
                 pwdCancelBtn: "Cancel",
                 pwdConfirmBtn: "Save Changes"
             }
@@ -493,7 +591,6 @@
         let items = [];
 
         function resetItemsForTeacher(teacherName) {
-            // 이미미 선생님의 경우 기본 20회 항목 세팅, 기타 선생님은 기본 5회
             const count = (teacherName === '이미미') ? 20 : 5;
             items = [];
             for (let i = 0; i < count; i++) {
@@ -509,15 +606,6 @@
 
         let db = [];
         window.db = db;
-
-        try {
-            const local = localStorage.getItem('sea_invoices_db_v20');
-            if (local) {
-                db = JSON.parse(local);
-            } else {
-                localStorage.setItem('sea_invoices_db_v20', JSON.stringify(db));
-            }
-        } catch(e) {}
 
         function showAlert(title, msg) {
             document.getElementById('modalTitle').innerText = title;
@@ -542,7 +630,7 @@
         }
 
         function verifyAdminPassword() {
-            const val = document.getElementById('adminPasswordInput').value;
+            const val = document.getElementById('adminPasswordInput').value.trim();
             if (val === "1234") {
                 closeAuthModal();
                 switchMode('director');
@@ -570,20 +658,19 @@
                 return;
             }
             if (newPwd === '1234') {
-                showAlert(currentLang === 'ko' ? "사용 불가" : "Not Allowed", currentLang === 'ko' ? "'1234'는 원장님 관리자 전용 비밀번호이므로 선생님 개인 비밀번호로 사용할 수 없습니다." : "'1234' is reserved for the director and cannot be used as a personal teacher password.");
+                showAlert(currentLang === 'ko' ? "사용 불가" : "Not Allowed", currentLang === 'ko' ? "'1234'는 원장님 관리자 전용 비밀번호이므로 선생님 개인 비밀번호로 사용할 수 없습니다." : "'1234' is reserved for the director.");
                 return;
             }
 
             teacherPasswords[loggedInTeacher] = newPwd;
             window.teacherPasswords[loggedInTeacher] = newPwd;
 
-            // 클라우드 데이터베이스에 비밀번호 저장
             if (window.savePasswordToCloud) {
                 window.savePasswordToCloud(loggedInTeacher, newPwd);
             }
 
             closePasswordChangeModal();
-            showAlert(currentLang === 'ko' ? "변경 완료" : "Password Changed", currentLang === 'ko' ? `[${loggedInTeacher}] 선생님의 개인 비밀번호가 안전하게 변경되었습니다. 앞으로는 변경된 비밀번호로 로그인하세요.` : `Personal password for ${loggedInTeacher} has been successfully updated.`);
+            showAlert(currentLang === 'ko' ? "변경 완료" : "Password Changed", currentLang === 'ko' ? `[${loggedInTeacher}] 선생님의 개인 비밀번호가 안전하게 변경되었습니다.` : `Password updated.`);
         }
 
         function goHome() {
@@ -598,19 +685,19 @@
             const pwd = pwdInput.value.trim();
 
             if (!name) {
-                showAlert(currentLang === 'ko' ? "입력 오류" : "Input Error", currentLang === 'ko' ? "선생님 성함을 정확히 입력해주세요. (김서경, 민자윤, 이미미, Candace, Marilyn)" : "Please enter your teacher name.");
+                showAlert(currentLang === 'ko' ? "입력 오류" : "Input Error", currentLang === 'ko' ? "선생님 성함을 입력해주세요." : "Please enter your teacher name.");
                 return;
             }
 
             const currentPwds = window.teacherPasswords || teacherPasswords;
 
             if (!currentPwds[name]) {
-                showAlert(currentLang === 'ko' ? "등록되지 않은 성함" : "Unregistered Name", currentLang === 'ko' ? `[${name}] 선생님은 등록된 강사 명단에 없습니다. (김서경, 민자윤, 이미미, Candace, Marilyn 중 입력)` : `[${name}] is not in the registered teacher list.`);
+                showAlert(currentLang === 'ko' ? "등록되지 않은 성함" : "Unregistered Name", currentLang === 'ko' ? `[${name}] 선생님은 등록된 강사 명단에 없습니다.` : `[${name}] is not in the list.`);
                 return;
             }
 
             if (pwd !== currentPwds[name]) {
-                showAlert(currentLang === 'ko' ? "비밀번호 불일치" : "Incorrect Password", currentLang === 'ko' ? "개인 비밀번호가 올바르지 않습니다. (최초 접속 시 기본 비밀번호: 1111)" : "Incorrect personal password. (Initial default password: 1111)");
+                showAlert(currentLang === 'ko' ? "비밀번호 불일치" : "Incorrect Password", currentLang === 'ko' ? "개인 비밀번호가 올바르지 않습니다." : "Incorrect personal password.");
                 return;
             }
 
@@ -619,7 +706,6 @@
             document.getElementById('loggedInTeacherBadge').innerText = loggedInTeacher;
             document.getElementById('displayTeacherName').value = loggedInTeacher;
 
-            // 선생님별 안내 박스 처리
             const standardRuleBox = document.getElementById('standardRuleBox');
             const mimiRuleBox = document.getElementById('mimiRuleBox');
 
@@ -640,12 +726,6 @@
             resetItemsForTeacher(loggedInTeacher);
             renderRows();
             renderMyInvoices();
-
-            if (pwd === '1111') {
-                setTimeout(() => {
-                    showAlert(currentLang === 'ko' ? "보안 안내" : "Security Notice", currentLang === 'ko' ? `환영합니다, ${loggedInTeacher} 선생님! 현재 기본 비밀번호(1111)를 사용 중이십니다. 개인 정보 보호를 위해 우측 상단의 [비밀번호 변경] 버튼을 눌러 본인만의 비밀번호로 변경해주세요.` : `Welcome, ${loggedInTeacher}! You are using the default password (1111). Please click [Change Password] to secure your account.`);
-                }, 300);
-            }
         }
 
         function logoutTeacher() {
@@ -697,13 +777,13 @@
                 items[idx].originalDay = parseInt(dayVal, 10);
                 
                 if (loggedInTeacher === 'Candace') {
-                    items[idx].rate = 1.25; // $1.25 USD fixed per 30 mins
-                    items[idx].hours = 0.5;  // 30 mins
+                    items[idx].rate = 1.25;
+                    items[idx].hours = 0.5;
                 } else if (loggedInTeacher === 'Marilyn') {
-                    items[idx].rate = 10000; // 10,000 KRW fixed per 45 mins
-                    items[idx].hours = 0.75; // 45 mins
+                    items[idx].rate = 10000;
+                    items[idx].hours = 0.75;
                 } else if (loggedInTeacher === '이미미') {
-                    // 이미미 선생님은 본인이 직접 입력한 금액 유지 (자동 덮어쓰기 안 함)
+                    // 사용자 입력 유지
                 } else {
                     const monthVal = document.getElementById('invoiceMonth').value;
                     const parts = monthVal.split('-');
@@ -757,15 +837,13 @@
             items.forEach((item, idx) => {
                 if (item.originalDay === undefined) item.originalDay = 6;
 
-                // 선생님별 설정
                 if (loggedInTeacher === 'Candace') {
-                    item.rate = 1.25; // USD ($1.25 per 30 mins)
-                    item.hours = 0.5; // 30분 고정
+                    item.rate = 1.25;
+                    item.hours = 0.5;
                 } else if (loggedInTeacher === 'Marilyn') {
-                    item.rate = 10000; // KRW (10,000 KRW per 45 mins)
-                    item.hours = 0.75; // 45분 고정
+                    item.rate = 10000;
+                    item.hours = 0.75;
                 } else if (loggedInTeacher === '이미미') {
-                    // 이미미 선생님: 금액 자유 입력 지원 (기본값 설정 없으면 25,000)
                     if (item.rate === undefined) item.rate = 25000;
                     if (!item.hours) item.hours = 1;
                 } else {
@@ -780,7 +858,6 @@
                     if (!item.hours) item.hours = 1;
                 }
 
-                // 항목 합계 계산
                 let sumText = '';
                 let numericSum = 0;
                 if (loggedInTeacher === 'Candace') {
@@ -788,7 +865,7 @@
                     sumText = `$${numericSum.toFixed(2)} USD`;
                 } else if (loggedInTeacher === 'Marilyn') {
                     numericSum = 10000;
-                    sumText = `${numericSum.toLocaleString()} won (45분 수업)`;
+                    sumText = `${numericSum.toLocaleString()} won`;
                 } else {
                     numericSum = (Number(item.hours) || 0) * (Number(item.rate) || 0);
                     sumText = `${numericSum.toLocaleString()} won`;
@@ -798,17 +875,17 @@
                 div.className = 'bg-slate-50 dark:bg-slate-700/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 relative';
                 div.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <span class="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">${currentLang === 'ko' ? `수업 항목 #${idx + 1}` : `Class Item #${idx + 1}`}</span>
+                        <span class="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">수업 항목 #${idx + 1}</span>
                         <div class="flex items-center gap-2">
                             <span class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
-                                ${loggedInTeacher === 'Candace' ? '🇺🇸 30분 수업 ($1.25 고정)' : (loggedInTeacher === 'Marilyn' ? '🇰🇷 45분 수업 (10,000원 고정)' : (loggedInTeacher === '이미미' ? '✏️ 본인 금액 입력 가능' : `시급: ${Number(item.rate).toLocaleString()}원/h`))}
+                                ${loggedInTeacher === 'Candace' ? '🇺🇸 30분 ($1.25 고정)' : (loggedInTeacher === 'Marilyn' ? '🇰🇷 45분 (10,000원 고정)' : (loggedInTeacher === '이미미' ? '✏️ 금액 자유 입력' : `시급: ${Number(item.rate).toLocaleString()}원/h`))}
                             </span>
-                            ${items.length > 1 ? `<button type="button" onclick="removeCustomRow(${idx})" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1" title="항목 삭제">✕</button>` : ''}
+                            ${items.length > 1 ? `<button type="button" onclick="removeCustomRow(${idx})" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1">✕</button>` : ''}
                         </div>
                     </div>
                     
                     <div class="bg-indigo-50/60 dark:bg-indigo-950/40 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between gap-2">
-                        <span class="text-[11px] font-bold text-indigo-950 dark:text-indigo-200">${currentLang === 'ko' ? '📌 정기 수업 요일:' : '📌 Regular Day:'}</span>
+                        <span class="text-[11px] font-bold text-indigo-950 dark:text-indigo-200">📌 정기 수업 요일:</span>
                         <select onchange="updateOriginalDay(${idx}, this.value)" class="p-1.5 rounded border border-indigo-300 dark:border-indigo-700 text-xs bg-white dark:bg-slate-800 dark:text-white font-bold text-indigo-700 dark:text-indigo-300 cursor-pointer">
                             <option value="0" ${item.originalDay === 0 ? 'selected' : ''}>일요일 (Sunday)</option>
                             <option value="1" ${item.originalDay === 1 ? 'selected' : ''}>월요일 (Monday)</option>
@@ -822,27 +899,27 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
-                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">${currentLang === 'ko' ? '실제 수업 날짜 (📅)' : 'Actual Class Date (📅)'}</label>
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">실제 수업 날짜</label>
                             <input type="date" value="${item.date || ''}" onchange="handleDateChange(${idx}, this.value)" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-medium cursor-pointer">
                         </div>
                         <div>
-                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">${currentLang === 'ko' ? (loggedInTeacher==='Candace' ? '수업 시간 (30분)' : (loggedInTeacher==='Marilyn' ? '수업 시간 (45분)' : '시간 (Hours)')) : 'Hours'}</label>
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">수업 시간</label>
                             <input type="number" value="${item.hours}" ${loggedInTeacher==='Candace'||loggedInTeacher==='Marilyn'?'readonly':''} min="0.25" step="0.25" oninput="updateItem(${idx}, 'hours', this.value)" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs ${loggedInTeacher==='Candace'||loggedInTeacher==='Marilyn'?'bg-slate-100 dark:bg-slate-800 font-bold text-indigo-700 dark:text-indigo-300 cursor-not-allowed':'bg-white dark:bg-slate-800 dark:text-white font-medium'}">
                         </div>
                         <div>
-                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">${currentLang === 'ko' ? '단가 / 지급액 (원)' : 'Rate / Pay'}</label>
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">단가 / 지급액 (원)</label>
                             ${loggedInTeacher === '이미미' ? 
-                                `<input type="number" value="${item.rate}" oninput="updateItem(${idx}, 'rate', this.value)" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-bold text-emerald-600 dark:text-emerald-400" placeholder="금액 직접 입력">` : 
+                                `<input type="number" value="${item.rate}" oninput="updateItem(${idx}, 'rate', this.value)" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-bold text-emerald-600 dark:text-emerald-400">` : 
                                 `<input type="text" value="${loggedInTeacher==='Candace'?'$'+item.rate.toFixed(2)+' USD':Number(item.rate).toLocaleString()+'원'}" readonly class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-slate-100 dark:bg-slate-800 font-bold text-indigo-700 dark:text-indigo-300 cursor-not-allowed">`
                             }
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">${currentLang === 'ko' ? '수업 내용 및 메모 (Topics)' : 'Class Topic & Lesson Details'}</label>
-                        <input type="text" value="${item.topics || ''}" oninput="updateItem(${idx}, 'topics', this.value)" placeholder="${loggedInTeacher==='Candace'?'예: 30분 스피킹 세션':(loggedInTeacher==='이미미'?'예: 초등 파닉스 및 회화 20회차':'예: 수업 주제 작성')}" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-medium">
+                        <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">수업 내용 및 메모</label>
+                        <input type="text" value="${item.topics || ''}" oninput="updateItem(${idx}, 'topics', this.value)" placeholder="수업 주제 작성" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-medium">
                     </div>
                     <div class="text-right text-xs font-bold text-slate-700 dark:text-slate-300 pt-1">
-                        ${currentLang === 'ko' ? '항목 합계:' : 'Item Subtotal:'} <span class="text-indigo-600 dark:text-indigo-400">${sumText}</span>
+                        항목 합계: <span class="text-indigo-600 dark:text-indigo-400">${sumText}</span>
                     </div>
                 `;
                 container.appendChild(div);
@@ -856,9 +933,9 @@
             items.forEach(i => { 
                 if (i.date || (i.topics && i.topics.trim() !== '')) {
                     if (loggedInTeacher === 'Candace') {
-                        total += 1.25; // $1.25 USD per session
+                        total += 1.25;
                     } else if (loggedInTeacher === 'Marilyn') {
-                        total += 10000; // 10,000 KRW per session
+                        total += 10000;
                     } else {
                         total += (Number(i.hours) || 0) * (Number(i.rate) || 0); 
                     }
@@ -875,7 +952,7 @@
 
             const validItems = items.filter(i => i.date || (i.topics && i.topics.trim() !== ''));
             if (validItems.length === 0) {
-                showAlert(currentLang === 'ko' ? "입력 오류" : "Input Error", currentLang === 'ko' ? "최소 1개 이상의 수업 항목에 날짜 또는 수업 내용을 입력해주세요." : "Please enter the date or topic for at least 1 class item.");
+                showAlert(currentLang === 'ko' ? "입력 오류" : "Input Error", currentLang === 'ko' ? "최소 1개 이상의 수업 항목에 날짜 또는 수업 내용을 입력해주세요." : "Please enter date/topic for at least 1 class item.");
                 return;
             }
 
@@ -896,17 +973,118 @@
                 month: month,
                 items: validItems,
                 totalAmount: total,
-                status: currentLang === 'ko' ? '검토 대기중' : 'Pending Review',
+                status: '검토 대기중',
                 submittedAt: new Date().toISOString().split('T')[0]
             };
 
-            // 클라우드 데이터베이스 저장
             if (window.saveInvoiceToCloud) {
                 window.saveInvoiceToCloud(newInv);
             }
 
             renderMyInvoices();
-            showAlert(currentLang === 'ko' ? "제출 완료" : "Submission Complete", loggedInTeacher + (currentLang === 'ko' ? " 선생님의 인보이스가 원장님께 성공적으로 제출되었습니다!" : "'s invoice has been successfully submitted to the Director!"));
+            showAlert(currentLang === 'ko' ? "제출 완료" : "Submission Complete", loggedInTeacher + " 선생님의 인보이스가 성공적으로 제출되었습니다!");
+        }
+
+        function renderMyInvoices() {
+            const listEl = document.getElementById('myInvoicesList');
+            if (!listEl || !loggedInTeacher) return;
+
+            const currentDb = window.db || db;
+            const myInvoices = currentDb.filter(i => i.teacherName === loggedInTeacher);
+
+            if (myInvoices.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 py-3 text-center">${translations[currentLang].noInvoices}</p>`;
+                return;
+            }
+
+            listEl.innerHTML = '';
+            myInvoices.sort((a,b) => b.id.localeCompare(a.id)).forEach(inv => {
+                const isUSD = inv.teacherName === 'Candace';
+                const totalStr = isUSD ? `$${inv.totalAmount.toFixed(2)} USD` : `${Math.round(inv.totalAmount).toLocaleString()} 원`;
+                
+                const div = document.createElement('div');
+                div.className = 'bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs';
+                div.innerHTML = `
+                    <div>
+                        <span class="font-bold text-slate-900 dark:text-white">${inv.month}</span>
+                        <span class="text-[10px] text-slate-400 ml-1">(${inv.submittedAt} 제출)</span>
+                        <p class="text-indigo-600 dark:text-indigo-300 font-bold mt-0.5">${totalStr} (${inv.items.length}개 수업)</p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${inv.status==='승인완료'?'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300':(inv.status==='지급완료'?'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300':'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300')}">
+                        ${inv.status}
+                    </span>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        function renderDirectorDashboard() {
+            const listEl = document.getElementById('directorInvoiceList');
+            if (!listEl) return;
+
+            const currentDb = window.db || db;
+            const filterMonth = document.getElementById('directorFilterMonth').value;
+
+            let filtered = currentDb;
+            if (filterMonth !== 'ALL') {
+                filtered = currentDb.filter(i => i.month === filterMonth);
+            }
+
+            document.getElementById('directorTotalCount').innerText = `${filtered.length} 건`;
+
+            let krwTotal = 0;
+            let usdTotal = 0;
+            filtered.forEach(i => {
+                if (i.teacherName === 'Candace') usdTotal += i.totalAmount;
+                else krwTotal += i.totalAmount;
+            });
+
+            document.getElementById('directorTotalPayout').innerText = usdTotal > 0 
+                ? `${Math.round(krwTotal).toLocaleString()}원 / $${usdTotal.toFixed(2)} USD`
+                : `${Math.round(krwTotal).toLocaleString()} 원`;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 py-6 text-center">${translations[currentLang].noDirectorInvoices}</p>`;
+                return;
+            }
+
+            listEl.innerHTML = '';
+            filtered.sort((a,b) => b.id.localeCompare(a.id)).forEach(inv => {
+                const isUSD = inv.teacherName === 'Candace';
+                const totalStr = isUSD ? `$${inv.totalAmount.toFixed(2)} USD` : `${Math.round(inv.totalAmount).toLocaleString()} 원`;
+
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 dark:bg-slate-700/40 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2';
+                card.innerHTML = `
+                    <div class="flex justify-between items-center border-b dark:border-slate-700 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-sm text-slate-900 dark:text-white">${inv.teacherName} 선생님</span>
+                            <span class="text-xs bg-slate-200 dark:bg-slate-600 px-2 py-0.5 rounded-lg text-slate-700 dark:text-slate-300 font-semibold">${inv.month}</span>
+                        </div>
+                        <span class="text-emerald-600 dark:text-emerald-400 font-black text-sm">${totalStr}</span>
+                    </div>
+
+                    <div class="text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+                        <p class="font-semibold text-slate-500 dark:text-slate-400">수업 내역 (${inv.items.length}건):</p>
+                        <ul class="list-disc list-inside space-y-0.5 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                            ${inv.items.map(it => `<li>${it.date || '날짜미기재'} - ${it.topics || '주제미기재'} (${it.hours}h)</li>`).join('')}
+                        </ul>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-1">
+                        <span class="text-[10px] text-slate-400">제출일: ${inv.submittedAt}</span>
+                        <div class="flex items-center gap-1.5">
+                            <select onchange="changeStatus('${inv.id}', this.value)" class="text-xs p-1 rounded-lg border dark:border-slate-600 font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-white cursor-pointer">
+                                <option value="검토 대기중" ${inv.status==='검토 대기중'?'selected':''}>검토 대기중</option>
+                                <option value="승인완료" ${inv.status==='승인완료'?'selected':''}>승인완료</option>
+                                <option value="지급완료" ${inv.status==='지급완료'?'selected':''}>지급완료 (5일)</option>
+                            </select>
+                            <button type="button" onclick="deleteInv('${inv.id}')" class="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-950 dark:hover:bg-rose-900 dark:text-rose-300 text-[11px] font-bold rounded-lg transition">삭제</button>
+                        </div>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
         }
 
         function changeStatus(id, newStatus) {
@@ -921,7 +1099,7 @@
                 if (loggedInTeacher === target.teacherName) {
                     renderMyInvoices();
                 }
-                showAlert(currentLang === 'ko' ? "변경 완료" : "Status Updated", (currentLang === 'ko' ? `상태가 [${newStatus}] (으)로 변경되었습니다.` : `Status updated to [${newStatus}].`));
+                showAlert("상태 변경 완료", `상태가 [${newStatus}](으)로 업데이트 되었습니다.`);
             }
         }
 
@@ -929,7 +1107,7 @@
             const currentDb = window.db || db;
             const target = currentDb.find(i => i.id === id);
             if (!target) return;
-            if (confirm(target.teacherName + (currentLang === 'ko' ? " 선생님의 인보이스 내역을 정말 삭제하시겠습니까?" : "'s invoice will be deleted. Are you sure?"))) {
+            if (confirm(`${target.teacherName} 선생님의 인보이스 내역을 정말 삭제하시겠습니까?`)) {
                 if (window.deleteInvoiceFromCloud) {
                     window.deleteInvoiceFromCloud(id);
                 }
@@ -943,7 +1121,6 @@
         window.renderMyInvoices = renderMyInvoices;
         window.renderDirectorDashboard = renderDirectorDashboard;
 
-        // 초기화
         window.onload = function() {
             initTheme();
         };
