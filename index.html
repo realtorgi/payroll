@@ -317,15 +317,19 @@
                 console.warn("Auth initialization note:", e);
             }
 
-            // 인보이스 데이터 실시간 구독
+            // 인보이스 데이터 실시간 구독 (데이터 보존 안전 장치 강화)
             const publicInvoicesRef = collection(db, 'artifacts', appId, 'public', 'data', 'invoices');
             onSnapshot(publicInvoicesRef, (snapshot) => {
                 let fetchedInvoices = [];
                 snapshot.forEach(docSnap => {
                     fetchedInvoices.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                window.db = fetchedInvoices;
-                localStorage.setItem('sea_invoices', JSON.stringify(fetchedInvoices));
+                
+                // 더 많은 클라우드 데이터가 있거나 동기화 성공시에만 업데이트 (기존 로컬 데이터 유실 방지)
+                if (fetchedInvoices.length > 0 || !localStorage.getItem('sea_invoices')) {
+                    window.db = fetchedInvoices;
+                    localStorage.setItem('sea_invoices', JSON.stringify(fetchedInvoices));
+                }
                 
                 if (window.loggedInTeacher) {
                     window.renderMyInvoices();
@@ -335,7 +339,7 @@
                     window.renderDirectorDashboard();
                 }
             }, (error) => {
-                console.error("Firestore snapshot error:", error);
+                console.warn("Firestore snapshot error (Using safe local backup):", error);
             });
 
             // 비밀번호 정보 실시간 구독
@@ -346,11 +350,27 @@
                     localStorage.setItem('sea_passwords', JSON.stringify(window.teacherPasswords));
                 }
             }, (error) => {
-                console.error("Password snapshot error:", error);
+                console.warn("Password snapshot error:", error);
             });
         }
 
         window.saveInvoiceToCloud = async function(invObj) {
+            // 로컬 스토리지에 즉시 보존
+            let currentLocal = [];
+            try {
+                const stored = localStorage.getItem('sea_invoices');
+                currentLocal = stored ? JSON.parse(stored) : [];
+            } catch(e){}
+            
+            const existingIdx = currentLocal.findIndex(i => i.id === invObj.id);
+            if (existingIdx >= 0) {
+                currentLocal[existingIdx] = invObj;
+            } else {
+                currentLocal.push(invObj);
+            }
+            localStorage.setItem('sea_invoices', JSON.stringify(currentLocal));
+            window.db = currentLocal;
+
             try {
                 const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invObj.id);
                 await setDoc(invDocRef, invObj);
@@ -371,6 +391,15 @@
         };
 
         window.deleteInvoiceFromCloud = async function(invId) {
+            let currentLocal = [];
+            try {
+                const stored = localStorage.getItem('sea_invoices');
+                currentLocal = stored ? JSON.parse(stored) : [];
+            } catch(e){}
+            currentLocal = currentLocal.filter(i => i.id !== invId);
+            localStorage.setItem('sea_invoices', JSON.stringify(currentLocal));
+            window.db = currentLocal;
+
             try {
                 const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invId);
                 await deleteDoc(invDocRef);
