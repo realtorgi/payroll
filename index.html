@@ -154,7 +154,7 @@
                         <div id="mimiRuleBox" class="hidden bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
                             <p id="mimiRuleTitle" class="font-bold">💡 [이미미 선생님 전용 안내]</p>
                             <p id="mimiRuleDesc" class="text-[11px] text-emerald-800 dark:text-emerald-300">
-                                이미미 선생님께서는 한 달 수업 횟수(기본 20회 설정)에 맞게 수업 내역을 작성하실 수 있으며, <b>단가/금액을 직접 입력</b>하실 수 있습니다. 필요시 하단의 <b>[+ 수업 항목 추가]</b> 버튼으로 내역을 확장하세요.
+                                이미미 선생님께서는 한 달 수업 횟수(기본 4회 설정)에 맞게 수업 내역을 작성하실 수 있으며, <b>단가/금액을 직접 입력</b>하실 수 있습니다. 필요시 하단의 <b>[+ 수업 항목 추가]</b> 버튼으로 내역을 확장하세요.
                             </p>
                         </div>
 
@@ -343,18 +343,14 @@
                     fetchedInvoices.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 
-                if (fetchedInvoices.length > 0) {
-                    window.db = fetchedInvoices;
-                    localStorage.setItem('sea_invoices', JSON.stringify(fetchedInvoices));
-                }
+                window.db = fetchedInvoices;
+                localStorage.setItem('sea_invoices', JSON.stringify(fetchedInvoices));
                 
                 if (window.loggedInTeacher) {
                     window.renderMyInvoices();
                 }
-                const vDirector = document.getElementById('viewDirector');
-                if (vDirector && !vDirector.classList.contains('hidden')) {
-                    window.renderDirectorDashboard();
-                }
+                // 실시간 동기화 발생 시 원장님 대시보드 무조건 갱신
+                window.renderDirectorDashboard();
             }, (error) => {
                 console.warn("Firestore listener fallback to local:", error);
             });
@@ -646,7 +642,7 @@
         }
 
         function resetItemsForTeacher(teacherName) {
-            const count = (teacherName === '이미미') ? 20 : 5;
+            const count = (teacherName === '이미미') ? 4 : 5;
             items = [];
             for (let i = 0; i < count; i++) {
                 items.push({ 
