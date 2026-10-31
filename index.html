@@ -1012,8 +1012,11 @@
                 }
             });
 
+            // 현재 수정 중인 인보이스 ID가 있다면 해당 ID를 사용해 덮어쓰기(수정)
+            const editingId = window.editingInvoiceId || ('INV-' + Date.now());
+
             const newInv = {
-                id: 'INV-' + Date.now(),
+                id: editingId,
                 teacherName: loggedInTeacher,
                 month: month,
                 items: validItems,
@@ -1022,12 +1025,32 @@
                 submittedAt: new Date().toISOString().split('T')[0]
             };
 
+            window.editingInvoiceId = null; // 수정 상태 리셋
+
             if (window.saveInvoiceToCloud) {
                 window.saveInvoiceToCloud(newInv);
             }
 
             renderMyInvoices();
-            showAlert(currentLang === 'ko' ? "제출 완료" : "Submission Complete", loggedInTeacher + " 선생님의 인보이스가 성공적으로 제출되었습니다!");
+            showAlert(currentLang === 'ko' ? "제출 완료" : "Submission Complete", loggedInTeacher + " 선생님의 인보이스가 성공적으로 제출/수정되었습니다!");
+        }
+
+        // 선생님이 제출했던 인보이스를 수정하기 위해 폼으로 다시 불러오는 함수
+        function editMyInvoice(invId) {
+            const currentDb = getStoredInvoices();
+            const inv = currentDb.find(i => i.id === invId);
+            if (!inv) return;
+
+            window.editingInvoiceId = inv.id;
+            document.getElementById('invoiceMonth').value = inv.month;
+
+            // 수정할 데이터를 입력 폼에 덮어씌움
+            items = JSON.parse(JSON.stringify(inv.items));
+            renderRows();
+
+            // 폼 영역으로 스크롤 이동
+            document.getElementById('teacherWorkspace').scrollIntoView({ behavior: 'smooth' });
+            showAlert("수정 모드", `[${inv.month}] 제출 내역을 불러왔습니다. 내용 수정 후 다시 [제출하기]를 눌러주세요.`);
         }
 
         function renderMyInvoices() {
@@ -1051,13 +1074,19 @@
                 div.className = 'bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs';
                 div.innerHTML = `
                     <div>
-                        <span class="font-bold text-slate-900 dark:text-white">${inv.month}</span>
-                        <span class="text-[10px] text-slate-400 ml-1">(${inv.submittedAt} 제출)</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-bold text-slate-900 dark:text-white">${inv.month}</span>
+                            <span class="text-[10px] text-slate-400">(${inv.submittedAt} 제출)</span>
+                        </div>
                         <p class="text-indigo-600 dark:text-indigo-300 font-bold mt-0.5">${totalStr} (${inv.items.length}개 수업)</p>
                     </div>
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${inv.status==='승인완료'?'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300':(inv.status==='지급완료'?'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300':'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300')}">
-                        ${inv.status}
-                    </span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${inv.status==='승인완료'?'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300':(inv.status==='지급완료'?'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300':'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300')}">
+                            ${inv.status}
+                        </span>
+                        <button type="button" onclick="editMyInvoice('${inv.id}')" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:hover:bg-indigo-900 dark:text-indigo-300 text-[10px] font-bold rounded-lg transition">✏️ 수정</button>
+                        <button type="button" onclick="deleteInv('${inv.id}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950 dark:hover:bg-rose-900 dark:text-rose-400 text-[10px] font-bold rounded-lg transition">🗑️ 삭제</button>
+                    </div>
                 `;
                 listEl.appendChild(div);
             });
@@ -1152,17 +1181,66 @@
             const currentDb = getStoredInvoices();
             const target = currentDb.find(i => i.id === id);
             if (!target) return;
-            if (confirm(`${target.teacherName} 선생님의 인보이스 내역을 정말 삭제하시겠습니까?`)) {
-                if (window.deleteInvoiceFromCloud) {
-                    window.deleteInvoiceFromCloud(id);
+            
+            showConfirmModal(
+                currentLang === 'ko' ? "인보이스 삭제 확인" : "Confirm Delete",
+                currentLang === 'ko' ? `[${target.month}] 인보이스 제출 내역을 정말 삭제하시겠습니까?` : `Are you sure you want to delete this invoice?`,
+                function() {
+                    if (window.deleteInvoiceFromCloud) {
+                        window.deleteInvoiceFromCloud(id);
+                    }
+                    renderDirectorDashboard();
+                    if (loggedInTeacher && loggedInTeacher === target.teacherName) {
+                        renderMyInvoices();
+                    }
+                    showAlert(currentLang === 'ko' ? "삭제 완료" : "Deleted", currentLang === 'ko' ? "인보이스가 성공적으로 삭제되었습니다." : "Invoice has been deleted.");
                 }
-                renderDirectorDashboard();
-                if (loggedInTeacher && loggedInTeacher === target.teacherName) {
-                    renderMyInvoices();
-                }
-            }
+            );
         }
 
+        function showConfirmModal(title, msg, onConfirmCallback) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalText').innerText = msg;
+            
+            const modalBox = document.getElementById('modalBox');
+            const modalOkBtn = document.getElementById('modalOkBtn');
+            
+            // 기존 모달 하단을 취소/확인 2개 버튼 구조로 임시 변경
+            const modalContainer = modalBox.querySelector('.bg-white, .dark\\:bg-slate-800');
+            let btnContainer = document.getElementById('customConfirmContainer');
+            
+            if (!btnContainer) {
+                btnContainer = document.createElement('div');
+                btnContainer.id = 'customConfirmContainer';
+                btnContainer.className = 'flex gap-2 pt-2';
+                modalContainer.appendChild(btnContainer);
+            }
+            
+            modalOkBtn.classList.add('hidden');
+            btnContainer.classList.remove('hidden');
+            btnContainer.innerHTML = `
+                <button type="button" onclick="closeModal()" class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition">취소</button>
+                <button type="button" id="realConfirmBtn" class="w-1/2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow transition">삭제 확인</button>
+            `;
+            
+            document.getElementById('realConfirmBtn').onclick = function() {
+                closeModal();
+                if (onConfirmCallback) onConfirmCallback();
+            };
+            
+            modalBox.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modalBox').classList.add('hidden');
+            const modalOkBtn = document.getElementById('modalOkBtn');
+            const btnContainer = document.getElementById('customConfirmContainer');
+            if (modalOkBtn) modalOkBtn.classList.remove('hidden');
+            if (btnContainer) btnContainer.classList.add('hidden');
+        }
+
+        window.deleteInv = deleteInv;
+        window.editMyInvoice = editMyInvoice;
         window.renderMyInvoices = renderMyInvoices;
         window.renderDirectorDashboard = renderDirectorDashboard;
 
