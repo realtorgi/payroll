@@ -135,8 +135,8 @@
                             <div>
                                 <label id="labelMonth" class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">정산 대상 월 선택</label>
                                 <select id="invoiceMonth" onchange="renderRows()" class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs bg-white dark:bg-slate-700 dark:text-white font-semibold cursor-pointer">
-                                    <option value="2026-09" selected>2026년 9월 (September 2026)</option>
-                                    <option value="2026-10">2026년 10월 (October 2026)</option>
+                                    <option value="2026-09">2026년 9월 (September 2026)</option>
+                                    <option value="2026-10" selected>2026년 10월 (October 2026)</option>
                                     <option value="2026-11">2026년 11월 (November 2026)</option>
                                     <option value="2026-12">2026년 12월 (December 2026)</option>
                                 </select>
@@ -216,8 +216,8 @@
                         <div class="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                             <label id="filterMonthText" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">정산 월 필터</label>
                             <select id="directorFilterMonth" onchange="renderDirectorDashboard()" class="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 text-xs font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-white cursor-pointer">
-                                <option value="ALL">전체 (All Months)</option>
-                                <option value="2026-09" selected>2026년 9월</option>
+                                <option value="ALL" selected>전체 (All Months)</option>
+                                <option value="2026-09">2026년 9월</option>
                                 <option value="2026-10">2026년 10월</option>
                                 <option value="2026-11">2026년 11월</option>
                                 <option value="2026-12">2026년 12월</option>
@@ -277,7 +277,7 @@
         </div>
     </div>
 
-    <!-- 알림 모달 -->
+    <!-- 알림 및 확인 모달 -->
     <div id="modalBox" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 max-w-xs w-full p-5 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 space-y-3 text-center">
             <h3 id="modalTitle" class="text-base font-bold text-slate-900 dark:text-white">알림</h3>
@@ -306,7 +306,6 @@
         window.dbInstance = db;
         window.appId = appId;
 
-        // 브라우저 및 기기 간 이벤트 중계 채널 (Cross-Device/Tab Sync Channel)
         const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('sea_payroll_sync') : null;
 
         if (syncChannel) {
@@ -337,7 +336,6 @@
                 console.warn("Auth note:", e);
             }
 
-            // 인보이스 데이터 실시간 구독
             const publicInvoicesRef = collection(db, 'artifacts', appId, 'public', 'data', 'invoices');
             onSnapshot(publicInvoicesRef, (snapshot) => {
                 let fetchedInvoices = [];
@@ -382,6 +380,11 @@
                 syncChannel.postMessage({ type: 'INVOICE_UPDATED', invoices: currentLocal });
             }
 
+            // 원장님 화면이 열려있다면 즉시 UI 업데이트 실행
+            if (window.renderDirectorDashboard) {
+                window.renderDirectorDashboard();
+            }
+
             try {
                 const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invObj.id);
                 await setDoc(invDocRef, invObj);
@@ -420,13 +423,15 @@
         let currentLang = 'ko';
 
         function getStoredInvoices() {
-            if (window.db && window.db.length > 0) return window.db;
             try {
                 const stored = localStorage.getItem('sea_invoices');
-                return stored ? JSON.parse(stored) : [];
-            } catch (e) {
-                return [];
-            }
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    window.db = parsed;
+                    return parsed;
+                }
+            } catch (e) {}
+            return window.db || [];
         }
 
         function getStoredPasswords() {
@@ -662,6 +667,10 @@
 
         function closeModal() {
             document.getElementById('modalBox').classList.add('hidden');
+            const modalOkBtn = document.getElementById('modalOkBtn');
+            const btnContainer = document.getElementById('customConfirmContainer');
+            if (modalOkBtn) modalOkBtn.classList.remove('hidden');
+            if (btnContainer) btnContainer.classList.add('hidden');
         }
 
         function openAuthModal() {
@@ -712,10 +721,6 @@
             teacherPasswords[loggedInTeacher] = newPwd;
             window.teacherPasswords[loggedInTeacher] = newPwd;
             localStorage.setItem('sea_passwords', JSON.stringify(window.teacherPasswords));
-
-            if (window.savePasswordToCloud) {
-                window.savePasswordToCloud(loggedInTeacher, newPwd);
-            }
 
             closePasswordChangeModal();
             showAlert(currentLang === 'ko' ? "변경 완료" : "Password Changed", currentLang === 'ko' ? `[${loggedInTeacher}] 선생님의 개인 비밀번호가 안전하게 변경되었습니다.` : `Password updated.`);
@@ -867,7 +872,7 @@
 
         function removeCustomRow(idx) {
             if (items.length <= 1) {
-                showAlert(currentLang === 'ko' ? "삭제 불가" : "Cannot Remove", currentLang === 'ko' ? "최소 1개의 항목은 유지되어야 합니다." : "At least one row must remain.");
+                showAlert(currentLang === 'ko' ? "삭제 불가" : "Cannot Remove", currentLang === 'ko' ? "최소 1개의 수업 항목은 남아있어야 합니다." : "At least one row must remain.");
                 return;
             }
             items.splice(idx, 1);
@@ -929,7 +934,7 @@
                             <span class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
                                 ${loggedInTeacher === 'Candace' ? '🇺🇸 30분 ($1.25 고정)' : (loggedInTeacher === 'Marilyn' ? '🇰🇷 45분 (10,000원 고정)' : (loggedInTeacher === '이미미' ? '✏️ 금액 자유 입력' : `시급: ${Number(item.rate).toLocaleString()}원/h`))}
                             </span>
-                            ${items.length > 1 ? `<button type="button" onclick="removeCustomRow(${idx})" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1">✕</button>` : ''}
+                            <button type="button" onclick="removeCustomRow(${idx})" class="text-rose-500 hover:text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-950 text-xs font-bold px-2 py-0.5 rounded-md transition cursor-pointer" title="이 항목 삭제">✕ 삭제</button>
                         </div>
                     </div>
                     
@@ -1016,7 +1021,6 @@
                 }
             });
 
-            // 현재 수정 중인 인보이스 ID가 있다면 해당 ID를 사용해 덮어쓰기(수정)
             const editingId = window.editingInvoiceId || ('INV-' + Date.now());
 
             const newInv = {
@@ -1029,17 +1033,27 @@
                 submittedAt: new Date().toISOString().split('T')[0]
             };
 
-            window.editingInvoiceId = null; // 수정 상태 리셋
+            window.editingInvoiceId = null;
 
             if (window.saveInvoiceToCloud) {
                 window.saveInvoiceToCloud(newInv);
+            } else {
+                let currentDb = getStoredInvoices();
+                const existingIdx = currentDb.findIndex(i => i.id === newInv.id);
+                if (existingIdx >= 0) {
+                    currentDb[existingIdx] = newInv;
+                } else {
+                    currentDb.push(newInv);
+                }
+                localStorage.setItem('sea_invoices', JSON.stringify(currentDb));
+                window.db = currentDb;
             }
 
             renderMyInvoices();
+            renderDirectorDashboard();
             showAlert(currentLang === 'ko' ? "제출 완료" : "Submission Complete", loggedInTeacher + " 선생님의 인보이스가 성공적으로 제출/수정되었습니다!");
         }
 
-        // 선생님이 제출했던 인보이스를 수정하기 위해 폼으로 다시 불러오는 함수
         function editMyInvoice(invId) {
             const currentDb = getStoredInvoices();
             const inv = currentDb.find(i => i.id === invId);
@@ -1048,11 +1062,9 @@
             window.editingInvoiceId = inv.id;
             document.getElementById('invoiceMonth').value = inv.month;
 
-            // 수정할 데이터를 입력 폼에 덮어씌움
             items = JSON.parse(JSON.stringify(inv.items));
             renderRows();
 
-            // 폼 영역으로 스크롤 이동
             document.getElementById('teacherWorkspace').scrollIntoView({ behavior: 'smooth' });
             showAlert("수정 모드", `[${inv.month}] 제출 내역을 불러왔습니다. 내용 수정 후 다시 [제출하기]를 눌러주세요.`);
         }
@@ -1100,6 +1112,7 @@
             const listEl = document.getElementById('directorInvoiceList');
             if (!listEl) return;
 
+            // 항상 최신 로컬스토리지 데이터를 다시 불러와 동기화
             const currentDb = getStoredInvoices();
             const filterMonth = document.getElementById('directorFilterMonth').value;
 
@@ -1172,6 +1185,8 @@
                 target.status = newStatus;
                 if (window.saveInvoiceToCloud) {
                     window.saveInvoiceToCloud(target);
+                } else {
+                    localStorage.setItem('sea_invoices', JSON.stringify(currentDb));
                 }
                 renderDirectorDashboard();
                 if (loggedInTeacher === target.teacherName) {
@@ -1192,6 +1207,10 @@
                 function() {
                     if (window.deleteInvoiceFromCloud) {
                         window.deleteInvoiceFromCloud(id);
+                    } else {
+                        const updated = currentDb.filter(i => i.id !== id);
+                        localStorage.setItem('sea_invoices', JSON.stringify(updated));
+                        window.db = updated;
                     }
                     renderDirectorDashboard();
                     if (loggedInTeacher && loggedInTeacher === target.teacherName) {
@@ -1209,7 +1228,6 @@
             const modalBox = document.getElementById('modalBox');
             const modalOkBtn = document.getElementById('modalOkBtn');
             
-            // 기존 모달 하단을 취소/확인 2개 버튼 구조로 임시 변경
             const modalContainer = modalBox.querySelector('.bg-white, .dark\\:bg-slate-800');
             let btnContainer = document.getElementById('customConfirmContainer');
             
@@ -1235,18 +1253,11 @@
             modalBox.classList.remove('hidden');
         }
 
-        function closeModal() {
-            document.getElementById('modalBox').classList.add('hidden');
-            const modalOkBtn = document.getElementById('modalOkBtn');
-            const btnContainer = document.getElementById('customConfirmContainer');
-            if (modalOkBtn) modalOkBtn.classList.remove('hidden');
-            if (btnContainer) btnContainer.classList.add('hidden');
-        }
-
         window.deleteInv = deleteInv;
         window.editMyInvoice = editMyInvoice;
         window.renderMyInvoices = renderMyInvoices;
         window.renderDirectorDashboard = renderDirectorDashboard;
+        window.removeCustomRow = removeCustomRow;
 
         window.onload = function() {
             initTheme();
