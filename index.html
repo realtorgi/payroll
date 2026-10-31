@@ -36,22 +36,20 @@
 <body class="bg-slate-100 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-100 pb-12 flex flex-col justify-between transition-colors duration-200">
 
     <div>
-        <!-- 상단 서브 바 (급여일 안내, 클라우드 연결 상태, 다크모드 및 언어 선택기) -->
+        <!-- 상단 서브 바 -->
         <div class="bg-slate-950 text-slate-300 px-4 py-2 border-b border-slate-800 text-xs no-print">
             <div class="max-w-xl mx-auto flex justify-between items-center">
                 <div class="flex items-center gap-2">
                     <p id="topNoticeText" class="text-[11px] text-slate-400">급여일: 매월 5일 | 정산 자동 관리 시스템</p>
                     <span id="cloudStatus" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> 실시간 저장 중
+                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> 데이터 실시간 동기화 중
                     </span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <!-- 다크모드 토글 버튼 -->
                     <button type="button" onclick="toggleDarkMode()" class="bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm text-[11px] text-slate-300 hover:text-white transition" title="다크모드 전환">
                         <span id="themeIcon">🌙</span>
                         <span id="themeText" class="hidden sm:inline text-[10px]">다크</span>
                     </button>
-                    <!-- 언어 선택기 -->
                     <div class="bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-lg flex items-center gap-1.5 shadow-sm">
                         <span class="text-[10px]">🌐</span>
                         <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-transparent text-white font-bold text-[11px] outline-none cursor-pointer">
@@ -85,7 +83,7 @@
 
             <!-- 선생님 모드 뷰 -->
             <div id="viewTeacher" class="space-y-4">
-                <!-- 선생님 보안 로그인 카드 -->
+                <!-- 선생님 로그인 카드 -->
                 <div id="teacherLoginCard" class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4 text-center">
                     <div class="space-y-1">
                         <span class="text-3xl">👩‍🏫</span>
@@ -118,7 +116,7 @@
                             </div>
                         </div>
 
-                        <!-- 개인 비밀번호 변경 카드 섹션 -->
+                        <!-- 개인 비밀번호 변경 카드 -->
                         <div class="bg-indigo-50/70 dark:bg-indigo-950/40 p-3.5 rounded-xl border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3">
                             <div>
                                 <p id="pwdCardTitle" class="text-xs font-bold text-indigo-900 dark:text-indigo-200">🔑 개인 보안 비밀번호 관리</p>
@@ -145,7 +143,7 @@
                             </div>
                         </div>
 
-                        <!-- 시급 자동 계산 규칙 안내 박스 -->
+                        <!-- 시급 규칙 안내 박스 -->
                         <div id="standardRuleBox" class="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-1">
                             <p id="ruleTitle" class="font-bold">💡 [시급 자동 계산 규칙 안내]</p>
                             <p id="ruleDesc" class="text-[11px] text-amber-800 dark:text-amber-300">
@@ -153,7 +151,6 @@
                             </p>
                         </div>
 
-                        <!-- 이미미 선생님 전용 안내 박스 -->
                         <div id="mimiRuleBox" class="hidden bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
                             <p id="mimiRuleTitle" class="font-bold">💡 [이미미 선생님 전용 안내]</p>
                             <p id="mimiRuleDesc" class="text-[11px] text-emerald-800 dark:text-emerald-300">
@@ -171,7 +168,6 @@
                                 </div>
                             </div>
 
-                            <!-- 수업 항목 동적 컨테이너 -->
                             <div id="rowsContainer" class="space-y-2.5">
                                 <!-- 동적 렌더링 -->
                             </div>
@@ -193,7 +189,7 @@
                             <span>📤 내가 제출한 인보이스 내역 (본인 전용 조회)</span>
                         </h3>
                         <div id="myInvoicesList" class="space-y-2">
-                            <!-- 내가 제출한 인보이스 동적 렌더링 -->
+                            <!-- 제출 내역 동적 렌더링 -->
                         </div>
                     </div>
                 </div>
@@ -216,7 +212,6 @@
                         </button>
                     </div>
 
-                    <!-- 정산 필터 및 총계 통계 카드 -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                             <label id="filterMonthText" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">정산 월 필터</label>
@@ -238,7 +233,6 @@
                         </div>
                     </div>
 
-                    <!-- 선생님 제출 인보이스 리스트 -->
                     <div class="space-y-3 pt-2">
                         <h3 id="teacherListTitle" class="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1">
                             📋 선생님별 인보이스 목록 및 승인 상태
@@ -260,7 +254,7 @@
                 <h3 id="authTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5">🔒 원장님 관리자 인증</h3>
                 <p id="authDesc" class="text-xs text-slate-500 dark:text-slate-400">관리자 비밀번호를 입력해주세요.</p>
             </div>
-            <input type="password" id="adminPasswordInput" placeholder="비밀번호 입력" class="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-bold text-center bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:bg-white outline-none" onkeydown="if(event.key==='Enter') verifyAdminPassword()">
+            <input type="password" id="adminPasswordInput" placeholder="비밀번호 입력 (1234)" class="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-bold text-center bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:bg-white outline-none" onkeydown="if(event.key==='Enter') verifyAdminPassword()">
             <div class="flex gap-2">
                 <button type="button" onclick="closeAuthModal()" id="authCancelBtn" class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition">취소</button>
                 <button type="button" onclick="verifyAdminPassword()" id="authConfirmBtn" class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition">확인 및 접속</button>
@@ -292,17 +286,17 @@
         </div>
     </div>
 
-    <!-- Firebase SDK 모듈 -->
+    <!-- Firebase SDK 실시간 연동 모듈 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'sea-payroll-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "dummy-key",
-            authDomain: "dummy.firebaseapp.com",
-            projectId: "dummy-project"
+            authDomain: "sea-payroll.firebaseapp.com",
+            projectId: "sea-payroll"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -311,7 +305,6 @@
 
         window.dbInstance = db;
         window.appId = appId;
-        window.authInstance = auth;
 
         async function initCloud() {
             try {
@@ -321,7 +314,7 @@
                     await signInAnonymously(auth);
                 }
             } catch(e) {
-                console.warn("Auth initialization fallback:", e);
+                console.warn("Auth initialization note:", e);
             }
 
             // 인보이스 데이터 실시간 구독
@@ -332,6 +325,7 @@
                     fetchedInvoices.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 window.db = fetchedInvoices;
+                localStorage.setItem('sea_invoices', JSON.stringify(fetchedInvoices));
                 
                 if (window.loggedInTeacher) {
                     window.renderMyInvoices();
@@ -344,11 +338,12 @@
                 console.error("Firestore snapshot error:", error);
             });
 
-            // 선생님 비밀번호 정보 실시간 구독
+            // 비밀번호 정보 실시간 구독
             const passwordsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'passwords');
             onSnapshot(passwordsDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     window.teacherPasswords = { ...window.teacherPasswords, ...docSnap.data() };
+                    localStorage.setItem('sea_passwords', JSON.stringify(window.teacherPasswords));
                 }
             }, (error) => {
                 console.error("Password snapshot error:", error);
@@ -387,9 +382,45 @@
         initCloud();
     </script>
 
-    <!-- 핵심 로직 및 UI 인터랙션 스크립트 -->
+    <!-- 스토리지 및 UI 조작 스크립트 -->
     <script>
         let currentLang = 'ko';
+
+        function getStoredInvoices() {
+            if (window.db && window.db.length > 0) return window.db;
+            try {
+                const stored = localStorage.getItem('sea_invoices');
+                return stored ? JSON.parse(stored) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function getStoredPasswords() {
+            const defaultPwds = {
+                '김서경': '1111',
+                '민자윤': '1111',
+                '이미미': '1111',
+                'Candace': '1111',
+                'Marilyn': '1111'
+            };
+            try {
+                const stored = localStorage.getItem('sea_passwords');
+                return stored ? { ...defaultPwds, ...JSON.parse(stored) } : defaultPwds;
+            } catch (e) {
+                return defaultPwds;
+            }
+        }
+
+        let teacherPasswords = getStoredPasswords();
+        window.teacherPasswords = teacherPasswords;
+        let db = getStoredInvoices();
+        window.db = db;
+
+        let loggedInTeacher = null;
+        window.loggedInTeacher = loggedInTeacher;
+
+        let items = [];
 
         function initTheme() {
             const isDark = localStorage.getItem('sea_theme') === 'dark' || 
@@ -444,7 +475,7 @@
                 ruleTitle: "💡 [시급 자동 계산 규칙 안내]",
                 ruleDesc: "선택하신 월에 해당 요일이 <b>4번</b> 있으면 <b>시급 25,000원</b>, <b>5번</b> 있으면 <b>시급 20,000원</b>으로 자동 적용되며 최대 10만 원이 지급됩니다.",
                 mimiRuleTitle: "💡 [이미미 선생님 전용 안내]",
-                mimiRuleDesc: "이미미 선생님께서는 한 달 수업 횟수(기본 20회 설정)에 맞게 수업 내역을 작성하실 수 있으며, <b>단가/금액을 직접 입력</b>하실 수 있습니다. 필요시 하단의 <b>[+ 수업 항목 추가]</b> 버튼으로 내역을 확장하세요.",
+                mimiRuleDesc: "이미미 선생님께서는 한 달 수업 횟수(기본 20회 설정)에 맞게 수업 내역을 작성하실 수 있으며, <b>단가/금액을 직접 입력</b>하실 수 있습니다.",
                 rowsTitle: "수업 상세 내역",
                 addRowBtnText: "수업 항목 추가",
                 totalText: "총 청구 금액 (Total Invoice):",
@@ -475,11 +506,11 @@
                 headerSub: "Director Payroll System",
                 tabDirector: "Director Admin Mode",
                 loginTitle: "Teacher Secure Login",
-                loginDesc: "Please enter your name and personal password.<br>(Registered Teachers: 김서경, 민자윤, 이미미, Candace, Marilyn)",
+                loginDesc: "Please enter your name and personal password.",
                 loginNamePlaceholder: "Teacher Name (e.g. Candace, 이미미)",
                 loginPwdPlaceholder: "Enter Password (Default 1111)",
                 loginBtn: "🔒 Log In",
-                loginFooter: "* Initial default password is <b>1111</b>. Click <b>[Change Password]</b> to set your private password!",
+                loginFooter: "* Initial default password is <b>1111</b>.",
                 workspaceTitle: "Monthly Class Invoice Creation & Submission",
                 workspaceSub: "Personal Invoice Workspace",
                 changePwdBtn: "Change Password",
@@ -492,14 +523,14 @@
                 ruleTitle: "💡 [Automatic Hourly Rate Rule]",
                 ruleDesc: "4 times/month: 25,000 KRW/hr. 5 times/month: 20,000 KRW/hr.",
                 mimiRuleTitle: "💡 [Mimi Lee Special Notice]",
-                mimiRuleDesc: "Custom rate entry enabled. Use [+ Add Class Item] to add sessions.",
+                mimiRuleDesc: "Custom rate entry enabled.",
                 rowsTitle: "Class Detailed Records",
                 addRowBtnText: "Add Class Item",
                 totalText: "Total Invoice Amount:",
                 submitBtn: "🚀 Submit Invoice to Director",
                 myInvoicesTitle: "My Submitted Invoices (Personal View)",
                 noInvoices: "No submitted invoices found.",
-                directorDashboardTitle: "Director Payroll & Invoice Management (All 5 Teachers)",
+                directorDashboardTitle: "Director Payroll & Invoice Management",
                 directorDashboardSub: "Review submitted invoices and manage monthly salary payouts on the 5th",
                 exitDirectorBtn: "Exit",
                 filterMonthText: "Month Filter",
@@ -514,7 +545,7 @@
                 authCancelBtn: "Cancel",
                 authConfirmBtn: "Confirm & Enter",
                 pwdModalTitle: "Change Personal Password",
-                pwdModalDesc: "Please enter your new password for future logins.",
+                pwdModalDesc: "Please enter your new password.",
                 pwdCancelBtn: "Cancel",
                 pwdConfirmBtn: "Save Changes"
             }
@@ -576,20 +607,6 @@
             }
         }
 
-        let teacherPasswords = {
-            '김서경': '1111',
-            '민자윤': '1111',
-            '이미미': '1111',
-            'Candace': '1111',
-            'Marilyn': '1111'
-        };
-        window.teacherPasswords = teacherPasswords;
-
-        let loggedInTeacher = null;
-        window.loggedInTeacher = loggedInTeacher;
-
-        let items = [];
-
         function resetItemsForTeacher(teacherName) {
             const count = (teacherName === '이미미') ? 20 : 5;
             items = [];
@@ -603,9 +620,6 @@
                 });
             }
         }
-
-        let db = [];
-        window.db = db;
 
         function showAlert(title, msg) {
             document.getElementById('modalTitle').innerText = title;
@@ -658,12 +672,13 @@
                 return;
             }
             if (newPwd === '1234') {
-                showAlert(currentLang === 'ko' ? "사용 불가" : "Not Allowed", currentLang === 'ko' ? "'1234'는 원장님 관리자 전용 비밀번호이므로 선생님 개인 비밀번호로 사용할 수 없습니다." : "'1234' is reserved for the director.");
+                showAlert(currentLang === 'ko' ? "사용 불가" : "Not Allowed", currentLang === 'ko' ? "'1234'는 원장님 관리자 전용 비밀번호입니다." : "'1234' is reserved for director.");
                 return;
             }
 
             teacherPasswords[loggedInTeacher] = newPwd;
             window.teacherPasswords[loggedInTeacher] = newPwd;
+            localStorage.setItem('sea_passwords', JSON.stringify(window.teacherPasswords));
 
             if (window.savePasswordToCloud) {
                 window.savePasswordToCloud(loggedInTeacher, newPwd);
@@ -689,14 +704,14 @@
                 return;
             }
 
-            const currentPwds = window.teacherPasswords || teacherPasswords;
+            const activePwds = window.teacherPasswords || teacherPasswords;
 
-            if (!currentPwds[name]) {
+            if (!activePwds[name]) {
                 showAlert(currentLang === 'ko' ? "등록되지 않은 성함" : "Unregistered Name", currentLang === 'ko' ? `[${name}] 선생님은 등록된 강사 명단에 없습니다.` : `[${name}] is not in the list.`);
                 return;
             }
 
-            if (pwd !== currentPwds[name]) {
+            if (pwd !== activePwds[name]) {
                 showAlert(currentLang === 'ko' ? "비밀번호 불일치" : "Incorrect Password", currentLang === 'ko' ? "개인 비밀번호가 올바르지 않습니다." : "Incorrect personal password.");
                 return;
             }
@@ -730,6 +745,7 @@
 
         function logoutTeacher() {
             loggedInTeacher = null;
+            window.loggedInTeacher = null;
             document.getElementById('loginTeacherName').value = '';
             document.getElementById('loginTeacherPassword').value = '';
             document.getElementById('teacherWorkspace').classList.add('hidden');
@@ -783,7 +799,7 @@
                     items[idx].rate = 10000;
                     items[idx].hours = 0.75;
                 } else if (loggedInTeacher === '이미미') {
-                    // 사용자 입력 유지
+                    // 단가 유지
                 } else {
                     const monthVal = document.getElementById('invoiceMonth').value;
                     const parts = monthVal.split('-');
@@ -989,7 +1005,7 @@
             const listEl = document.getElementById('myInvoicesList');
             if (!listEl || !loggedInTeacher) return;
 
-            const currentDb = window.db || db;
+            const currentDb = getStoredInvoices();
             const myInvoices = currentDb.filter(i => i.teacherName === loggedInTeacher);
 
             if (myInvoices.length === 0) {
@@ -1022,7 +1038,7 @@
             const listEl = document.getElementById('directorInvoiceList');
             if (!listEl) return;
 
-            const currentDb = window.db || db;
+            const currentDb = getStoredInvoices();
             const filterMonth = document.getElementById('directorFilterMonth').value;
 
             let filtered = currentDb;
@@ -1088,7 +1104,7 @@
         }
 
         function changeStatus(id, newStatus) {
-            const currentDb = window.db || db;
+            const currentDb = getStoredInvoices();
             const target = currentDb.find(i => i.id === id);
             if (target) {
                 target.status = newStatus;
@@ -1104,7 +1120,7 @@
         }
 
         function deleteInv(id) {
-            const currentDb = window.db || db;
+            const currentDb = getStoredInvoices();
             const target = currentDb.find(i => i.id === id);
             if (!target) return;
             if (confirm(`${target.teacherName} 선생님의 인보이스 내역을 정말 삭제하시겠습니까?`)) {
