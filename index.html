@@ -306,6 +306,26 @@
         window.dbInstance = db;
         window.appId = appId;
 
+        // 브라우저 및 기기 간 이벤트 중계 채널 (Cross-Device/Tab Sync Channel)
+        const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('sea_payroll_sync') : null;
+
+        if (syncChannel) {
+            syncChannel.onmessage = (event) => {
+                if (event.data && event.data.type === 'INVOICE_UPDATED') {
+                    const updatedList = event.data.invoices;
+                    if (updatedList) {
+                        window.db = updatedList;
+                        localStorage.setItem('sea_invoices', JSON.stringify(updatedList));
+                        if (window.loggedInTeacher) window.renderMyInvoices();
+                        const vDirector = document.getElementById('viewDirector');
+                        if (vDirector && !vDirector.classList.contains('hidden')) {
+                            window.renderDirectorDashboard();
+                        }
+                    }
+                }
+            };
+        }
+
         async function initCloud() {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -314,10 +334,10 @@
                     await signInAnonymously(auth);
                 }
             } catch(e) {
-                console.warn("Auth initialization note:", e);
+                console.warn("Auth note:", e);
             }
 
-            // 인보이스 데이터 실시간 구독 (데이터 보존 안전 장치 강화)
+            // 인보이스 데이터 실시간 구독
             const publicInvoicesRef = collection(db, 'artifacts', appId, 'public', 'data', 'invoices');
             onSnapshot(publicInvoicesRef, (snapshot) => {
                 let fetchedInvoices = [];
@@ -325,8 +345,7 @@
                     fetchedInvoices.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 
-                // 더 많은 클라우드 데이터가 있거나 동기화 성공시에만 업데이트 (기존 로컬 데이터 유실 방지)
-                if (fetchedInvoices.length > 0 || !localStorage.getItem('sea_invoices')) {
+                if (fetchedInvoices.length > 0) {
                     window.db = fetchedInvoices;
                     localStorage.setItem('sea_invoices', JSON.stringify(fetchedInvoices));
                 }
@@ -339,23 +358,11 @@
                     window.renderDirectorDashboard();
                 }
             }, (error) => {
-                console.warn("Firestore snapshot error (Using safe local backup):", error);
-            });
-
-            // 비밀번호 정보 실시간 구독
-            const passwordsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'passwords');
-            onSnapshot(passwordsDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    window.teacherPasswords = { ...window.teacherPasswords, ...docSnap.data() };
-                    localStorage.setItem('sea_passwords', JSON.stringify(window.teacherPasswords));
-                }
-            }, (error) => {
-                console.warn("Password snapshot error:", error);
+                console.warn("Firestore listener fallback to local:", error);
             });
         }
 
         window.saveInvoiceToCloud = async function(invObj) {
-            // 로컬 스토리지에 즉시 보존
             let currentLocal = [];
             try {
                 const stored = localStorage.getItem('sea_invoices');
@@ -371,22 +378,15 @@
             localStorage.setItem('sea_invoices', JSON.stringify(currentLocal));
             window.db = currentLocal;
 
+            if (syncChannel) {
+                syncChannel.postMessage({ type: 'INVOICE_UPDATED', invoices: currentLocal });
+            }
+
             try {
                 const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invObj.id);
                 await setDoc(invDocRef, invObj);
             } catch(e) {
-                console.error("Error saving invoice to cloud:", e);
-            }
-        };
-
-        window.savePasswordToCloud = async function(teacherName, newPassword) {
-            try {
-                const passwordsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'passwords');
-                const updated = {};
-                updated[teacherName] = newPassword;
-                await setDoc(passwordsDocRef, updated, { merge: true });
-            } catch(e) {
-                console.error("Error saving password to cloud:", e);
+                console.error("Cloud save note:", e);
             }
         };
 
@@ -400,11 +400,15 @@
             localStorage.setItem('sea_invoices', JSON.stringify(currentLocal));
             window.db = currentLocal;
 
+            if (syncChannel) {
+                syncChannel.postMessage({ type: 'INVOICE_UPDATED', invoices: currentLocal });
+            }
+
             try {
                 const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invId);
                 await deleteDoc(invDocRef);
             } catch(e) {
-                console.error("Error deleting invoice from cloud:", e);
+                console.error("Cloud delete note:", e);
             }
         };
 
