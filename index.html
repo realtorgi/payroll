@@ -68,7 +68,7 @@
                     <span class="text-xl bg-slate-800 p-1.5 rounded-lg border border-slate-700 group-hover:bg-indigo-600 transition">🏫</span>
                     <div>
                         <h1 class="text-base font-bold tracking-tight group-hover:text-indigo-300 transition">Seattle English Academy</h1>
-                        <p id="headerSubText" class="text-[10px] text-slate-400">원장님 정산 시스템</p>
+                        <p id="headerSubText" class="text-[10px] text-slate-400">원장님 정산 시스템 (지남원장)</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5">
@@ -178,7 +178,7 @@
                             </div>
 
                             <button type="button" onclick="submitInvoice()" id="submitBtnText" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5 cursor-pointer">
-                                🚀 원장님께 내 인보이스 제출하기
+                                🚀 원장님(지남원장)께 내 인보이스 제출하기
                             </button>
                         </div>
                     </div>
@@ -201,7 +201,7 @@
                     <div class="border-b dark:border-slate-700 pb-3 flex justify-between items-center">
                         <div>
                             <h2 id="directorDashboardTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                👑 원장님 급여 및 인보이스 정산 관리 (전체 5명 통합)
+                                👑 지남원장 급여 및 인보이스 정산 관리 (전체 5명 통합)
                             </h2>
                             <p id="directorDashboardSub" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                 모든 선생님이 제출한 인보이스 검토 및 매월 5일 급여 지급 관리
@@ -251,7 +251,7 @@
     <div id="authModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 max-w-xs w-full p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 space-y-4 text-center">
             <div class="space-y-1">
-                <h3 id="authTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5">🔒 원장님 관리자 인증</h3>
+                <h3 id="authTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5">🔒 지남원장 관리자 인증</h3>
                 <p id="authDesc" class="text-xs text-slate-500 dark:text-slate-400">관리자 전용 비밀번호를 입력해주세요.</p>
             </div>
             <input type="password" id="adminPasswordInput" placeholder="비밀번호 입력" class="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-bold text-center bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:bg-white outline-none" onkeydown="if(event.key==='Enter') verifyAdminPassword()">
@@ -286,17 +286,18 @@
         </div>
     </div>
 
-    <!-- Firebase SDK 실시간 연동 모듈 -->
+    <!-- Firebase SDK 실시간 연동 모듈 (고정된 공유 클라우드 경로 사용) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sea-payroll-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "dummy-key",
-            authDomain: "sea-payroll.firebaseapp.com",
-            projectId: "sea-payroll"
+        // 모든 기기에서 공용으로 바라보는 절대 고정된 클라우드 경로 지정
+        const appId = 'seattle-english-academy-shared-payroll-v1';
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-shared-dummy-key-sea",
+            authDomain: "seattle-english-academy.firebaseapp.com",
+            projectId: "seattle-english-academy"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -305,27 +306,6 @@
 
         window.dbInstance = db;
         window.appId = appId;
-
-        const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('sea_payroll_sync') : null;
-
-        if (syncChannel) {
-            syncChannel.onmessage = (event) => {
-                if (event.data && event.data.type === 'INVOICE_UPDATED') {
-                    const updatedList = event.data.invoices;
-                    if (updatedList) {
-                        window.db = updatedList;
-                        localStorage.setItem('sea_invoices', JSON.stringify(updatedList));
-                        if (window.loggedInTeacher) {
-                            window.renderMyInvoices();
-                        }
-                        const vDirector = document.getElementById('viewDirector');
-                        if (vDirector && !vDirector.classList.contains('hidden')) {
-                            window.renderDirectorDashboard();
-                        }
-                    }
-                }
-            };
-        }
 
         async function initCloud() {
             try {
@@ -339,6 +319,8 @@
             }
 
             const publicInvoicesRef = collection(db, 'artifacts', appId, 'public', 'data', 'invoices');
+            
+            // 실시간 리스너: 어느 기기에서든 데이터가 변경되면 모든 기기에 즉시 반영됨
             onSnapshot(publicInvoicesRef, (snapshot) => {
                 let fetchedInvoices = [];
                 snapshot.forEach(docSnap => {
@@ -347,22 +329,33 @@
                 
                 if (fetchedInvoices.length > 0) {
                     window.db = fetchedInvoices;
-                    localStorage.setItem('sea_invoices', JSON.stringify(fetchedInvoices));
+                    localStorage.setItem('sea_invoices_shared', JSON.stringify(fetchedInvoices));
+                } else {
+                    // 클라우드가 비어있으면 로컬 데이터를 클라우드에 업로드하여 초기화
+                    const localData = localStorage.getItem('sea_invoices_shared');
+                    if (localData) {
+                        try {
+                            const parsed = JSON.parse(localData);
+                            window.db = parsed;
+                        } catch(e){}
+                    }
                 }
                 
                 if (window.loggedInTeacher) {
                     window.renderMyInvoices();
                 }
-                window.renderDirectorDashboard();
+                if (window.renderDirectorDashboard) {
+                    window.renderDirectorDashboard();
+                }
             }, (error) => {
-                console.warn("Firestore listener fallback to local:", error);
+                console.warn("Firestore listener fallback:", error);
             });
         }
 
         window.saveInvoiceToCloud = async function(invObj) {
             let currentLocal = [];
             try {
-                const stored = localStorage.getItem('sea_invoices');
+                const stored = localStorage.getItem('sea_invoices_shared');
                 currentLocal = stored ? JSON.parse(stored) : [];
             } catch(e){}
             
@@ -372,16 +365,11 @@
             } else {
                 currentLocal.push(invObj);
             }
-            localStorage.setItem('sea_invoices', JSON.stringify(currentLocal));
+            localStorage.setItem('sea_invoices_shared', JSON.stringify(currentLocal));
             window.db = currentLocal;
 
-            if (syncChannel) {
-                syncChannel.postMessage({ type: 'INVOICE_UPDATED', invoices: currentLocal });
-            }
-
-            if (window.renderDirectorDashboard) {
-                window.renderDirectorDashboard();
-            }
+            if (window.renderMyInvoices) window.renderMyInvoices();
+            if (window.renderDirectorDashboard) window.renderDirectorDashboard();
 
             try {
                 const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invObj.id);
@@ -394,16 +382,15 @@
         window.deleteInvoiceFromCloud = async function(invId) {
             let currentLocal = [];
             try {
-                const stored = localStorage.getItem('sea_invoices');
+                const stored = localStorage.getItem('sea_invoices_shared');
                 currentLocal = stored ? JSON.parse(stored) : [];
             } catch(e){}
             currentLocal = currentLocal.filter(i => i.id !== invId);
-            localStorage.setItem('sea_invoices', JSON.stringify(currentLocal));
+            localStorage.setItem('sea_invoices_shared', JSON.stringify(currentLocal));
             window.db = currentLocal;
 
-            if (syncChannel) {
-                syncChannel.postMessage({ type: 'INVOICE_UPDATED', invoices: currentLocal });
-            }
+            if (window.renderMyInvoices) window.renderMyInvoices();
+            if (window.renderDirectorDashboard) window.renderDirectorDashboard();
 
             try {
                 const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invId);
@@ -416,13 +403,13 @@
         initCloud();
     </script>
 
-    <!-- 스토리지 및 UI 조작 스크립트 -->
+    <!-- UI 조작 및 렌더링 스크립트 -->
     <script>
         let currentLang = 'ko';
 
         function getStoredInvoices() {
             try {
-                const stored = localStorage.getItem('sea_invoices');
+                const stored = localStorage.getItem('sea_invoices_shared');
                 if (stored) {
                     const parsed = JSON.parse(stored);
                     window.db = parsed;
@@ -441,7 +428,7 @@
                 'Marilyn': '1111'
             };
             try {
-                const stored = localStorage.getItem('sea_passwords');
+                const stored = localStorage.getItem('sea_passwords_shared');
                 return stored ? { ...defaultPwds, ...JSON.parse(stored) } : defaultPwds;
             } catch (e) {
                 return defaultPwds;
@@ -491,7 +478,7 @@
         const translations = {
             ko: {
                 topNotice: "급여일: 매월 5일 | 정산 자동 관리 시스템",
-                headerSub: "원장님 정산 시스템",
+                headerSub: "지남원장 정산 시스템",
                 tabDirector: "원장님 관리자 모드",
                 loginTitle: "선생님 보안 로그인",
                 loginDesc: "본인 성함과 개인 비밀번호를 입력해주세요.<br>(등록된 5명의 선생님: 김서경, 민자윤, 이미미, Candace, Marilyn)",
@@ -515,10 +502,10 @@
                 rowsTitle: "수업 상세 내역",
                 addRowBtnText: "수업 항목 추가",
                 totalText: "총 청구 금액 (Total Invoice):",
-                submitBtn: "🚀 원장님께 내 인보이스 제출하기",
+                submitBtn: "🚀 지남원장님께 내 인보이스 제출하기",
                 myInvoicesTitle: "내가 제출한 인보이스 내역 (본인 전용 조회)",
                 noInvoices: "제출된 내역이 없습니다.",
-                directorDashboardTitle: "원장님 급여 및 인보이스 정산 관리 (전체 5명 통합)",
+                directorDashboardTitle: "지남원장 급여 및 인보이스 정산 관리 (전체 5명 통합)",
                 directorDashboardSub: "모든 선생님이 제출한 인보이스 검토 및 매월 5일 급여 지급 관리",
                 exitDirectorBtn: "나가기",
                 filterMonthText: "정산 월 필터",
@@ -528,7 +515,7 @@
                 noDirectorInvoices: "제출된 인보이스가 없습니다.",
                 modalTitle: "알림",
                 modalOkBtn: "확인",
-                authTitle: "원장님 관리자 인증",
+                authTitle: "지남원장 관리자 인증",
                 authDesc: "관리자 비밀번호를 입력해주세요.",
                 authCancelBtn: "취소",
                 authConfirmBtn: "확인 및 접속",
@@ -643,7 +630,6 @@
             }
         }
 
-        // 선택한 월 및 본인의 기존 제출 데이터를 조회하여 자동 복원
         function loadOrCreateWorkspaceData(teacherName, monthVal) {
             const currentDb = getStoredInvoices();
             const existingInv = currentDb.find(i => i.teacherName === teacherName && i.month === monthVal);
@@ -734,13 +720,13 @@
                 return;
             }
             if (newPwd === '1234') {
-                showAlert(currentLang === 'ko' ? "사용 불가" : "Not Allowed", currentLang === 'ko' ? "'1234'는 원장님 관리자 전용 비밀번호입니다." : "'1234' is reserved for director.");
+                showAlert(currentLang === 'ko' ? "사용 불가" : "Not Allowed", currentLang === 'ko' ? "'1234'는 지남원장님 관리자 전용 비밀번호입니다." : "'1234' is reserved for director.");
                 return;
             }
 
             teacherPasswords[loggedInTeacher] = newPwd;
             window.teacherPasswords[loggedInTeacher] = newPwd;
-            localStorage.setItem('sea_passwords', JSON.stringify(window.teacherPasswords));
+            localStorage.setItem('sea_passwords_shared', JSON.stringify(window.teacherPasswords));
 
             closePasswordChangeModal();
             showAlert(currentLang === 'ko' ? "변경 완료" : "Password Changed", currentLang === 'ko' ? `[${loggedInTeacher}] 선생님의 개인 비밀번호가 안전하게 변경되었습니다.` : `Password updated.`);
@@ -1042,7 +1028,7 @@
                 }
             });
 
-            const editingId = window.editingInvoiceId || ('INV-' + Date.now());
+            const editingId = window.editingInvoiceId || ('INV-' + loggedInTeacher + '-' + Date.now());
 
             const newInv = {
                 id: editingId,
@@ -1066,13 +1052,13 @@
                 } else {
                     currentDb.push(newInv);
                 }
-                localStorage.setItem('sea_invoices', JSON.stringify(currentDb));
+                localStorage.setItem('sea_invoices_shared', JSON.stringify(currentDb));
                 window.db = currentDb;
             }
 
             renderMyInvoices();
             renderDirectorDashboard();
-            showAlert(currentLang === 'ko' ? "제출 완료" : "Submission Complete", loggedInTeacher + " 선생님의 인보이스가 성공적으로 제출/수정되었습니다!");
+            showAlert(currentLang === 'ko' ? "제출 완료" : "Submission Complete", loggedInTeacher + " 선생님의 인보이스가 지남원장님께 성공적으로 제출/수정되었습니다!");
         }
 
         function editMyInvoice(invId) {
@@ -1206,7 +1192,7 @@
                 if (window.saveInvoiceToCloud) {
                     window.saveInvoiceToCloud(target);
                 } else {
-                    localStorage.setItem('sea_invoices', JSON.stringify(currentDb));
+                    localStorage.setItem('sea_invoices_shared', JSON.stringify(currentDb));
                 }
                 renderDirectorDashboard();
                 if (loggedInTeacher === target.teacherName) {
@@ -1229,7 +1215,7 @@
                         window.deleteInvoiceFromCloud(id);
                     } else {
                         const updated = currentDb.filter(i => i.id !== id);
-                        localStorage.setItem('sea_invoices', JSON.stringify(updated));
+                        localStorage.setItem('sea_invoices_shared', JSON.stringify(updated));
                         window.db = updated;
                     }
                     renderDirectorDashboard();
