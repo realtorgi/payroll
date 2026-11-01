@@ -286,55 +286,395 @@
         </div>
     </div>
 
-    <!-- Firebase SDK 실시간 연동 모듈 (원장님 파이어베이스 키 적용 완료) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- 스크립트 로직 -->
+    <script>
+        // 기본 등록 선생님 데이터베이스 및 초기 암호
+        const VALID_TEACHERS = ["김서경", "민자윤", "이미미", "Candace", "Marilyn"];
+        const DEFAULT_TEACHER_PASS = "1111";
+        const ADMIN_PASS = "1234";
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sea-payroll-app';
-        
-        // 원장님의 실제 파이어베이스 설정 적용
-        const firebaseConfig = {
-            apiKey: "AIzaSyBFGI_PijtyHGVQKkmwUIwoAaf_0nXHFvk",
-            authDomain: "sea-payroll.firebaseapp.com",
-            projectId: "sea-payroll",
-            storageBucket: "sea-payroll.appspot.com",
-            messagingSenderId: "964376578947",
-            appId: "1:964376578947:web:35ff98f0f254bbc73544b6"
-        };
+        let currentLang = 'ko';
+        window.loggedInTeacher = null;
+        let rowsData = [];
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        window.dbInstance = db;
-        window.appId = appId;
-
-        const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('sea_payroll_sync') : null;
-
-        if (syncChannel) {
-            syncChannel.onmessage = (event) => {
-                if (event.data && event.data.type === 'INVOICE_UPDATED') {
-                    const updatedList = event.data.invoices;
-                    if (updatedList) {
-                        window.db = updatedList;
-                        localStorage.setItem('sea_invoices', JSON.stringify(updatedList));
-                        if (window.loggedInTeacher) window.renderMyInvoices();
-                        const vDirector = document.getElementById('viewDirector');
-                        if (vDirector && !vDirector.classList.contains('hidden')) {
-                            window.renderDirectorDashboard();
-                        }
-                    }
-                }
-            };
+        // 로컬스토리지 초기 데이터 불러오기
+        function getPasswords() {
+            const saved = localStorage.getItem('sea_teacher_passwords');
+            if (saved) return JSON.parse(saved);
+            const initial = {};
+            VALID_TEACHERS.forEach(t => initial[t] = DEFAULT_TEACHER_PASS);
+            localStorage.setItem('sea_teacher_passwords', JSON.stringify(initial));
+            return initial;
         }
 
-        async function initCloud() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+        function getInvoices() {
+            const saved = localStorage.getItem('sea_invoices');
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        function saveInvoices(invoices) {
+            localStorage.setItem('sea_invoices', JSON.stringify(invoices));
+            broadcastSync();
+        }
+
+        function broadcastSync() {
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('sea_payroll_sync');
+                bc.postMessage({ type: 'INVOICE_UPDATED', invoices: getInvoices() });
+                bc.close();
+            }
+        }
+
+        // 알림 창 Modal
+        function showModal(msg, title = "알림") {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalText').innerText = msg;
+            document.getElementById('modalBox').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modalBox').classList.add('hidden');
+        }
+
+        // 다크모드 전환
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('themeIcon').innerText = isDark ? '🌙' : '☀️';
+            document.getElementById('themeText').innerText = isDark ? '다크' : '라이트';
+        }
+
+        // 홈 이동
+        function goHome() {
+            switchMode('teacher');
+        }
+
+        // 모드 전환
+        function switchMode(mode) {
+            const teacherView = document.getElementById('viewTeacher');
+            const directorView = document.getElementById('viewDirector');
+            if (mode === 'director') {
+                teacherView.classList.add('hidden');
+                directorView.classList.remove('hidden');
+                renderDirectorDashboard();
+            } else {
+                directorView.classList.add('hidden');
+                teacherView.classList.remove('hidden');
+            }
+        }
+
+        // 원장님 비밀번호 모달
+        function openAuthModal() {
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('authModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('adminPasswordInput').focus(), 100);
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function verifyAdminPassword() {
+            const pass = document.getElementById('adminPasswordInput').value.trim();
+            if (pass === ADMIN_PASS) {
+                closeAuthModal();
+                switchMode('director');
+            } else {
+                showModal('원장님 비밀번호가 올바르지 않습니다. (기본: 1234)', '인증 실패');
+            }
+        }
+
+        // 선생님 로그인
+        function loginTeacher() {
+            const inputName = document.getElementById('loginTeacherName').value.trim();
+            const inputPass = document.getElementById('loginTeacherPassword').value.trim();
+
+            if (!inputName || !inputPass) {
+                showModal('성함과 비밀번호를 모두 입력해주세요.');
+                return;
+            }
+
+            const matchedTeacher = VALID_TEACHERS.find(t => t.toLowerCase() === inputName.toLowerCase());
+            if (!matchedTeacher) {
+                showModal(`등록되지 않은 선생님 이름입니다.\n(등록된 목록: ${VALID_TEACHERS.join(', ')})`, '로그인 실패');
+                return;
+            }
+
+            const passwords = getPasswords();
+            if (passwords[matchedTeacher] !== inputPass) {
+                showModal('비밀번호가 올바르지 않습니다. (최초 접속시 1111)', '로그인 실패');
+                return;
+            }
+
+            window.loggedInTeacher = matchedTeacher;
+            document.getElementById('loggedInTeacherBadge').innerText = matchedTeacher;
+            document.getElementById('displayTeacherName').value = matchedTeacher;
+
+            document.getElementById('teacherLoginCard').classList.add('hidden');
+            document.getElementById('teacherWorkspace').classList.remove('hidden');
+
+            // 규칙 제어 (이미미 선생님 전용)
+            if (matchedTeacher === '이미미') {
+                document.getElementById('standardRuleBox').classList.add('hidden');
+                document.getElementById('mimiRuleBox').classList.remove('hidden');
+            } else {
+                document.getElementById('standardRuleBox').classList.remove('hidden');
+                document.getElementById('mimiRuleBox').classList.add('hidden');
+            }
+
+            initDefaultRows();
+            renderRows();
+            renderMyInvoices();
+        }
+
+        function logoutTeacher() {
+            window.loggedInTeacher = null;
+            document.getElementById('loginTeacherPassword').value = '';
+            document.getElementById('teacherWorkspace').classList.add('hidden');
+            document.getElementById('teacherLoginCard').classList.remove('hidden');
+        }
+
+        // 비밀번호 변경 모달
+        function openPasswordChangeModal() {
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('pwdModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('newPasswordInput').focus(), 100);
+        }
+
+        function closePasswordChangeModal() {
+            document.getElementById('pwdModal').classList.add('hidden');
+        }
+
+        function saveNewPassword() {
+            const newPass = document.getElementById('newPasswordInput').value.trim();
+            if (!newPass || newPass.length < 4) {
+                showModal('비밀번호는 최소 4자리 이상 입력해주세요.');
+                return;
+            }
+            const passwords = getPasswords();
+            passwords[window.loggedInTeacher] = newPass;
+            localStorage.setItem('sea_teacher_passwords', JSON.stringify(passwords));
+            closePasswordChangeModal();
+            showModal('개인 비밀번호가 성공적으로 변경되었습니다!');
+        }
+
+        // 인보이스 데이터 계산
+        function getDaysInMonthCount(yearMonth, dayOfWeek) {
+            const [y, m] = yearMonth.split('-').map(Number);
+            const daysCount = new Date(y, m, 0).getDate();
+            let count = 0;
+            for (let day = 1; day <= daysCount; day++) {
+                const d = new Date(y, m - 1, day);
+                if (d.getDay() === dayOfWeek) count++;
+            }
+            return count;
+        }
+
+        function initDefaultRows() {
+            rowsData = [
+                { title: '월요일 수업', dayOfWeek: 1, times: 4, rate: 25000 },
+                { title: '수요일 수업', dayOfWeek: 3, times: 4, rate: 25000 },
+                { title: '금요일 수업', dayOfWeek: 5, times: 4, rate: 25000 }
+            ];
+        }
+
+        function addCustomRow() {
+            rowsData.push({ title: '추가 수업 항목', dayOfWeek: 1, times: 4, rate: 25000 });
+            renderRows();
+        }
+
+        function removeRow(index) {
+            rowsData.splice(index, 1);
+            renderRows();
+        }
+
+        function renderRows() {
+            const container = document.getElementById('rowsContainer');
+            const monthVal = document.getElementById('invoiceMonth').value;
+            const isMimi = window.loggedInTeacher === '이미미';
+
+            container.innerHTML = '';
+            let grandTotal = 0;
+
+            rowsData.forEach((row, i) => {
+                if (!isMimi) {
+                    const times = getDaysInMonthCount(monthVal, row.dayOfWeek);
+                    row.times = times;
+                    row.rate = times === 5 ? 20000 : 25000;
                 }
-            } catch(e
+                const rowTotal = (row.times || 0) * (row.rate || 0);
+                grandTotal += rowTotal;
+
+                const rowDiv = document.createElement('div');
+                rowDiv.className = "bg-slate-50 dark:bg-slate-700/40 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2";
+                rowDiv.innerHTML = `
+                    <div class="flex justify-between items-center gap-2">
+                        <input type="text" value="${row.title}" onchange="rowsData[${i}].title=this.value" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 p-2 rounded-lg text-xs font-bold dark:text-white outline-none focus:border-indigo-500">
+                        ${rowsData.length > 1 ? `<button type="button" onclick="removeRow(${i})" class="text-rose-500 font-bold text-xs p-1 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg">✕</button>` : ''}
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-0.5">요일/횟수</label>
+                            ${isMimi ? 
+                                `<input type="number" value="${row.times}" onchange="rowsData[${i}].times=Number(this.value); renderRows();" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 p-1.5 rounded-lg text-xs text-center font-bold dark:text-white">`
+                                : `<span class="inline-block w-full py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-lg">${row.times} 회</span>`
+                            }
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-0.5">시급/단가</label>
+                            ${isMimi ?
+                                `<input type="number" value="${row.rate}" onchange="rowsData[${i}].rate=Number(this.value); renderRows();" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 p-1.5 rounded-lg text-xs text-center font-bold dark:text-white">`
+                                : `<span class="inline-block w-full py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-lg">${row.rate.toLocaleString()} 원</span>`
+                            }
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-0.5">합계</label>
+                            <span class="inline-block w-full py-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-lg">${rowTotal.toLocaleString()} 원</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(rowDiv);
+            });
+
+            document.getElementById('grandTotal').innerText = `${grandTotal.toLocaleString()} won`;
+        }
+
+        // 인보이스 제출
+        function submitInvoice() {
+            if (!window.loggedInTeacher) return;
+            const monthVal = document.getElementById('invoiceMonth').value;
+            const invoices = getInvoices();
+
+            let total = 0;
+            const details = rowsData.map(r => {
+                const rowTotal = r.times * r.rate;
+                total += rowTotal;
+                return { title: r.title, times: r.times, rate: r.rate, total: rowTotal };
+            });
+
+            const newInvoice = {
+                id: Date.now().toString(),
+                teacher: window.loggedInTeacher,
+                month: monthVal,
+                date: new Date().toLocaleDateString('ko-KR'),
+                details: details,
+                totalAmount: total,
+                status: '제출됨 (Pending)'
+            };
+
+            // 기존 동일 월 제출이 있다면 덮어쓰기/갱신
+            const existingIdx = invoices.findIndex(i => i.teacher === window.loggedInTeacher && i.month === monthVal);
+            if (existingIdx >= 0) {
+                invoices[existingIdx] = newInvoice;
+            } else {
+                invoices.push(newInvoice);
+            }
+
+            saveInvoices(invoices);
+            renderMyInvoices();
+            showModal(`${monthVal} 인보이스가 성공적으로 원장님께 제출되었습니다!`, '제출 완료');
+        }
+
+        // 내 제출 내역
+        function renderMyInvoices() {
+            const container = document.getElementById('myInvoicesList');
+            const invoices = getInvoices().filter(i => i.teacher === window.loggedInTeacher);
+
+            if (invoices.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 py-3 text-center">제출된 인보이스가 없습니다.</p>`;
+                return;
+            }
+
+            container.innerHTML = invoices.map(i => `
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 rounded-xl flex justify-between items-center text-xs">
+                    <div>
+                        <span class="font-bold text-slate-800 dark:text-slate-100">${i.month} 인보이스</span>
+                        <span class="text-[10px] text-slate-400 block">${i.date} 제출</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-black text-indigo-600 dark:text-indigo-400 block">${i.totalAmount.toLocaleString()} 원</span>
+                        <span class="text-[10px] font-bold ${i.status.includes('승인') ? 'text-emerald-500' : 'text-amber-500'}">${i.status}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 원장님 대시보드 렌더링
+        function renderDirectorDashboard() {
+            const monthFilter = document.getElementById('directorFilterMonth').value;
+            let invoices = getInvoices();
+
+            if (monthFilter !== 'ALL') {
+                invoices = invoices.filter(i => i.month === monthFilter);
+            }
+
+            document.getElementById('directorTotalCount').innerText = `${invoices.length} 건`;
+            const totalPayout = invoices.reduce((sum, item) => sum + item.totalAmount, 0);
+            document.getElementById('directorTotalPayout').innerText = `${totalPayout.toLocaleString()} 원`;
+
+            const container = document.getElementById('directorInvoiceList');
+
+            if (invoices.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 py-8 text-center bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">해당 조건에 제출된 인보이스가 없습니다.</p>`;
+                return;
+            }
+
+            container.innerHTML = invoices.map(inv => `
+                <div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                    <div class="flex justify-between items-center border-b dark:border-slate-700 pb-2">
+                        <div>
+                            <span class="font-bold text-sm text-indigo-600 dark:text-indigo-400">👩‍🏫 ${inv.teacher} 선생님</span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400 ml-2">(${inv.month})</span>
+                        </div>
+                        <span class="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">${inv.totalAmount.toLocaleString()} 원</span>
+                    </div>
+                    <div class="space-y-1">
+                        ${inv.details.map(d => `
+                            <div class="flex justify-between text-[11px] text-slate-600 dark:text-slate-300">
+                                <span>• ${d.title} (${d.times}회 x ${d.rate.toLocaleString()}원)</span>
+                                <span class="font-semibold">${d.total.toLocaleString()}원</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="pt-2 flex justify-between items-center text-xs border-t dark:border-slate-700">
+                        <span class="text-[10px] text-slate-400">제출일: ${inv.date}</span>
+                        <div class="flex gap-2">
+                            <button onclick="updateStatus('${inv.id}', '승인 및 지급예정')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg transition">승인</button>
+                            <button onclick="deleteInvoice('${inv.id}')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-lg transition">삭제</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStatus(id, newStatus) {
+            const invoices = getInvoices();
+            const inv = invoices.find(i => i.id === id);
+            if (inv) {
+                inv.status = newStatus;
+                saveInvoices(invoices);
+                renderDirectorDashboard();
+                showModal('인보이스가 승인 처리되었습니다.');
+            }
+        }
+
+        function deleteInvoice(id) {
+            let invoices = getInvoices();
+            invoices = invoices.filter(i => i.id !== id);
+            saveInvoices(invoices);
+            renderDirectorDashboard();
+            showModal('인보이스 항목이 삭제되었습니다.');
+        }
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            // 필요 시 UI 문구 전환 지원
+        }
+
+        // 초기 실행
+        window.onload = function() {
+            getPasswords();
+        };
+    </script>
+</body>
+</html>
