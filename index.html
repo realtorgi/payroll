@@ -134,7 +134,7 @@
                             </div>
                             <div>
                                 <label id="labelMonth" class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">정산 대상 월 선택</label>
-                                <select id="invoiceMonth" onchange="renderRows()" class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs bg-white dark:bg-slate-700 dark:text-white font-semibold cursor-pointer">
+                                <select id="invoiceMonth" onchange="onMonthChange()" class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs bg-white dark:bg-slate-700 dark:text-white font-semibold cursor-pointer">
                                     <option value="2026-09">2026년 9월 (September 2026)</option>
                                     <option value="2026-10" selected>2026년 10월 (October 2026)</option>
                                     <option value="2026-11">2026년 11월 (November 2026)</option>
@@ -252,9 +252,9 @@
         <div class="bg-white dark:bg-slate-800 max-w-xs w-full p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 space-y-4 text-center">
             <div class="space-y-1">
                 <h3 id="authTitle" class="text-base font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5">🔒 원장님 관리자 인증</h3>
-                <p id="authDesc" class="text-xs text-slate-500 dark:text-slate-400">관리자 비밀번호를 입력해주세요.</p>
+                <p id="authDesc" class="text-xs text-slate-500 dark:text-slate-400">관리자 전용 비밀번호를 입력해주세요.</p>
             </div>
-            <input type="password" id="adminPasswordInput" placeholder="비밀번호 입력 (1234)" class="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-bold text-center bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:bg-white outline-none" onkeydown="if(event.key==='Enter') verifyAdminPassword()">
+            <input type="password" id="adminPasswordInput" placeholder="비밀번호 입력" class="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 text-xs font-bold text-center bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:bg-white outline-none" onkeydown="if(event.key==='Enter') verifyAdminPassword()">
             <div class="flex gap-2">
                 <button type="button" onclick="closeAuthModal()" id="authCancelBtn" class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition">취소</button>
                 <button type="button" onclick="verifyAdminPassword()" id="authConfirmBtn" class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition">확인 및 접속</button>
@@ -315,7 +315,9 @@
                     if (updatedList) {
                         window.db = updatedList;
                         localStorage.setItem('sea_invoices', JSON.stringify(updatedList));
-                        if (window.loggedInTeacher) window.renderMyInvoices();
+                        if (window.loggedInTeacher) {
+                            window.renderMyInvoices();
+                        }
                         const vDirector = document.getElementById('viewDirector');
                         if (vDirector && !vDirector.classList.contains('hidden')) {
                             window.renderDirectorDashboard();
@@ -343,13 +345,14 @@
                     fetchedInvoices.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 
-                window.db = fetchedInvoices;
-                localStorage.setItem('sea_invoices', JSON.stringify(fetchedInvoices));
+                if (fetchedInvoices.length > 0) {
+                    window.db = fetchedInvoices;
+                    localStorage.setItem('sea_invoices', JSON.stringify(fetchedInvoices));
+                }
                 
                 if (window.loggedInTeacher) {
                     window.renderMyInvoices();
                 }
-                // 실시간 동기화 발생 시 원장님 대시보드 무조건 갱신
                 window.renderDirectorDashboard();
             }, (error) => {
                 console.warn("Firestore listener fallback to local:", error);
@@ -376,7 +379,6 @@
                 syncChannel.postMessage({ type: 'INVOICE_UPDATED', invoices: currentLocal });
             }
 
-            // 원장님 화면이 열려있다면 즉시 UI 업데이트 실행
             if (window.renderDirectorDashboard) {
                 window.renderDirectorDashboard();
             }
@@ -641,6 +643,28 @@
             }
         }
 
+        // 선택한 월 및 본인의 기존 제출 데이터를 조회하여 자동 복원
+        function loadOrCreateWorkspaceData(teacherName, monthVal) {
+            const currentDb = getStoredInvoices();
+            const existingInv = currentDb.find(i => i.teacherName === teacherName && i.month === monthVal);
+
+            if (existingInv && existingInv.items && existingInv.items.length > 0) {
+                window.editingInvoiceId = existingInv.id;
+                items = JSON.parse(JSON.stringify(existingInv.items));
+            } else {
+                window.editingInvoiceId = null;
+                resetItemsForTeacher(teacherName);
+            }
+            renderRows();
+        }
+
+        function onMonthChange() {
+            if (loggedInTeacher) {
+                const selectedMonth = document.getElementById('invoiceMonth').value;
+                loadOrCreateWorkspaceData(loggedInTeacher, selectedMonth);
+            }
+        }
+
         function resetItemsForTeacher(teacherName) {
             const count = (teacherName === '이미미') ? 4 : 5;
             items = [];
@@ -772,14 +796,15 @@
             document.getElementById('teacherLoginCard').classList.add('hidden');
             document.getElementById('teacherWorkspace').classList.remove('hidden');
 
-            resetItemsForTeacher(loggedInTeacher);
-            renderRows();
+            const currentMonth = document.getElementById('invoiceMonth').value;
+            loadOrCreateWorkspaceData(loggedInTeacher, currentMonth);
             renderMyInvoices();
         }
 
         function logoutTeacher() {
             loggedInTeacher = null;
             window.loggedInTeacher = null;
+            window.editingInvoiceId = null;
             document.getElementById('loginTeacherName').value = '';
             document.getElementById('loginTeacherPassword').value = '';
             document.getElementById('teacherWorkspace').classList.add('hidden');
@@ -1029,7 +1054,7 @@
                 submittedAt: new Date().toISOString().split('T')[0]
             };
 
-            window.editingInvoiceId = null;
+            window.editingInvoiceId = editingId;
 
             if (window.saveInvoiceToCloud) {
                 window.saveInvoiceToCloud(newInv);
@@ -1108,7 +1133,6 @@
             const listEl = document.getElementById('directorInvoiceList');
             if (!listEl) return;
 
-            // 항상 최신 로컬스토리지 데이터를 다시 불러와 동기화
             const currentDb = getStoredInvoices();
             const filterMonth = document.getElementById('directorFilterMonth').value;
 
@@ -1210,6 +1234,7 @@
                     }
                     renderDirectorDashboard();
                     if (loggedInTeacher && loggedInTeacher === target.teacherName) {
+                        loadOrCreateWorkspaceData(loggedInTeacher, document.getElementById('invoiceMonth').value);
                         renderMyInvoices();
                     }
                     showAlert(currentLang === 'ko' ? "삭제 완료" : "Deleted", currentLang === 'ko' ? "인보이스가 성공적으로 삭제되었습니다." : "Invoice has been deleted.");
@@ -1254,6 +1279,7 @@
         window.renderMyInvoices = renderMyInvoices;
         window.renderDirectorDashboard = renderDirectorDashboard;
         window.removeCustomRow = removeCustomRow;
+        window.onMonthChange = onMonthChange;
 
         window.onload = function() {
             initTheme();
