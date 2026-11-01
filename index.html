@@ -178,7 +178,7 @@
                             </div>
 
                             <button type="button" onclick="submitInvoice()" id="submitBtnText" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5 cursor-pointer">
-                                🚀 원장님(지남원장)께 내 인보이스 제출하기
+                                🚀 지남원장님께 내 인보이스 제출하기
                             </button>
                         </div>
                     </div>
@@ -286,18 +286,22 @@
         </div>
     </div>
 
-    <!-- Firebase SDK 실시간 연동 모듈 (고정된 공유 클라우드 경로 사용) -->
+    <!-- Firebase SDK 실시간 연동 모듈 (실제 sea-payroll 프로젝트 연동) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 모든 기기에서 공용으로 바라보는 절대 고정된 클라우드 경로 지정
+        // 사용자님의 실제 sea-payroll 파이어베이스 프로젝트 설정 적용
         const appId = 'seattle-english-academy-shared-payroll-v1';
         const firebaseConfig = {
-            apiKey: "AIzaSyD-shared-dummy-key-sea",
-            authDomain: "seattle-english-academy.firebaseapp.com",
-            projectId: "seattle-english-academy"
+            apiKey: "AIzaSyBFGI_PiJtyHGVQKkmwUiWoAaf_0nXHFVk",
+            authDomain: "sea-payroll.firebaseapp.com",
+            projectId: "sea-payroll",
+            storageBucket: "sea-payroll.appspot.com",
+            messagingSenderId: "964376578947",
+            appId: "1:964376578947:web:35ff98f0f254bbc73544b6",
+            measurementId: "G-M2TWN3WBNL"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -320,7 +324,7 @@
 
             const publicInvoicesRef = collection(db, 'artifacts', appId, 'public', 'data', 'invoices');
             
-            // 실시간 리스너: 어느 기기에서든 데이터가 변경되면 모든 기기에 즉시 반영됨
+            // 실시간 리스너: 폰이나 PC 어디서든 데이터 변경 시 즉시 동기화
             onSnapshot(publicInvoicesRef, (snapshot) => {
                 let fetchedInvoices = [];
                 snapshot.forEach(docSnap => {
@@ -331,7 +335,6 @@
                     window.db = fetchedInvoices;
                     localStorage.setItem('sea_invoices_shared', JSON.stringify(fetchedInvoices));
                 } else {
-                    // 클라우드가 비어있으면 로컬 데이터를 클라우드에 업로드하여 초기화
                     const localData = localStorage.getItem('sea_invoices_shared');
                     if (localData) {
                         try {
