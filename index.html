@@ -135,8 +135,8 @@
                             <div>
                                 <label id="labelMonth" class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">정산 대상 월 선택</label>
                                 <select id="invoiceMonth" onchange="renderRows()" class="w-full p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs bg-white dark:bg-slate-700 dark:text-white font-semibold cursor-pointer">
-                                    <option value="2026-09" selected>2026년 9월 (September 2026)</option>
-                                    <option value="2026-10">2026년 10월 (October 2026)</option>
+                                    <option value="2026-09">2026년 9월 (September 2026)</option>
+                                    <option value="2026-10" selected>2026년 10월 (October 2026)</option>
                                     <option value="2026-11">2026년 11월 (November 2026)</option>
                                     <option value="2026-12">2026년 12월 (December 2026)</option>
                                 </select>
@@ -277,7 +277,7 @@
         </div>
     </div>
 
-    <!-- 알림 모달 -->
+    <!-- 알림 및 확인 모달 -->
     <div id="modalBox" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 max-w-xs w-full p-5 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 space-y-3 text-center">
             <h3 id="modalTitle" class="text-base font-bold text-slate-900 dark:text-white">알림</h3>
@@ -286,47 +286,376 @@
         </div>
     </div>
 
-    <!-- 스크립트 로직 -->
+    <!-- Firebase SDK 실시간 연동 모듈 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sea-payroll-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "dummy-key",
+            authDomain: "sea-payroll.firebaseapp.com",
+            projectId: "sea-payroll"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.dbInstance = db;
+        window.appId = appId;
+
+        const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('sea_payroll_sync') : null;
+
+        if (syncChannel) {
+            syncChannel.onmessage = (event) => {
+                if (event.data && event.data.type === 'INVOICE_UPDATED') {
+                    const updatedList = event.data.invoices;
+                    if (updatedList) {
+                        window.db = updatedList;
+                        localStorage.setItem('sea_invoices', JSON.stringify(updatedList));
+                        if (window.loggedInTeacher) window.renderMyInvoices();
+                        const vDirector = document.getElementById('viewDirector');
+                        if (vDirector && !vDirector.classList.contains('hidden')) {
+                            window.renderDirectorDashboard();
+                        }
+                    }
+                }
+            };
+        }
+
+        async function initCloud() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch(e) {
+                console.warn("Auth note:", e);
+            }
+
+            const publicInvoicesRef = collection(db, 'artifacts', appId, 'public', 'data', 'invoices');
+            onSnapshot(publicInvoicesRef, (snapshot) => {
+                let fetchedInvoices = [];
+                snapshot.forEach(docSnap => {
+                    fetchedInvoices.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                
+                window.db = fetchedInvoices;
+                localStorage.setItem('sea_invoices', JSON.stringify(fetchedInvoices));
+                
+                if (window.loggedInTeacher) {
+                    window.renderMyInvoices();
+                }
+                // 실시간 동기화 발생 시 원장님 대시보드 무조건 갱신
+                window.renderDirectorDashboard();
+            }, (error) => {
+                console.warn("Firestore listener fallback to local:", error);
+            });
+        }
+
+        window.saveInvoiceToCloud = async function(invObj) {
+            let currentLocal = [];
+            try {
+                const stored = localStorage.getItem('sea_invoices');
+                currentLocal = stored ? JSON.parse(stored) : [];
+            } catch(e){}
+            
+            const existingIdx = currentLocal.findIndex(i => i.id === invObj.id);
+            if (existingIdx >= 0) {
+                currentLocal[existingIdx] = invObj;
+            } else {
+                currentLocal.push(invObj);
+            }
+            localStorage.setItem('sea_invoices', JSON.stringify(currentLocal));
+            window.db = currentLocal;
+
+            if (syncChannel) {
+                syncChannel.postMessage({ type: 'INVOICE_UPDATED', invoices: currentLocal });
+            }
+
+            // 원장님 화면이 열려있다면 즉시 UI 업데이트 실행
+            if (window.renderDirectorDashboard) {
+                window.renderDirectorDashboard();
+            }
+
+            try {
+                const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invObj.id);
+                await setDoc(invDocRef, invObj);
+            } catch(e) {
+                console.error("Cloud save note:", e);
+            }
+        };
+
+        window.deleteInvoiceFromCloud = async function(invId) {
+            let currentLocal = [];
+            try {
+                const stored = localStorage.getItem('sea_invoices');
+                currentLocal = stored ? JSON.parse(stored) : [];
+            } catch(e){}
+            currentLocal = currentLocal.filter(i => i.id !== invId);
+            localStorage.setItem('sea_invoices', JSON.stringify(currentLocal));
+            window.db = currentLocal;
+
+            if (syncChannel) {
+                syncChannel.postMessage({ type: 'INVOICE_UPDATED', invoices: currentLocal });
+            }
+
+            try {
+                const invDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'invoices', invId);
+                await deleteDoc(invDocRef);
+            } catch(e) {
+                console.error("Cloud delete note:", e);
+            }
+        };
+
+        initCloud();
+    </script>
+
+    <!-- 스토리지 및 UI 조작 스크립트 -->
     <script>
-        // 기본 등록 선생님 데이터베이스 및 초기 암호
-        const VALID_TEACHERS = ["김서경", "민자윤", "이미미", "Candace", "Marilyn"];
-        const DEFAULT_TEACHER_PASS = "1111";
-        const ADMIN_PASS = "1234";
-
         let currentLang = 'ko';
-        window.loggedInTeacher = null;
-        let rowsData = [];
 
-        // 로컬스토리지 초기 데이터 불러오기
-        function getPasswords() {
-            const saved = localStorage.getItem('sea_teacher_passwords');
-            if (saved) return JSON.parse(saved);
-            const initial = {};
-            VALID_TEACHERS.forEach(t => initial[t] = DEFAULT_TEACHER_PASS);
-            localStorage.setItem('sea_teacher_passwords', JSON.stringify(initial));
-            return initial;
+        function getStoredInvoices() {
+            try {
+                const stored = localStorage.getItem('sea_invoices');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    window.db = parsed;
+                    return parsed;
+                }
+            } catch (e) {}
+            return window.db || [];
         }
 
-        function getInvoices() {
-            const saved = localStorage.getItem('sea_invoices');
-            return saved ? JSON.parse(saved) : [];
-        }
-
-        function saveInvoices(invoices) {
-            localStorage.setItem('sea_invoices', JSON.stringify(invoices));
-            broadcastSync();
-        }
-
-        function broadcastSync() {
-            if (typeof BroadcastChannel !== 'undefined') {
-                const bc = new BroadcastChannel('sea_payroll_sync');
-                bc.postMessage({ type: 'INVOICE_UPDATED', invoices: getInvoices() });
-                bc.close();
+        function getStoredPasswords() {
+            const defaultPwds = {
+                '김서경': '1111',
+                '민자윤': '1111',
+                '이미미': '1111',
+                'Candace': '1111',
+                'Marilyn': '1111'
+            };
+            try {
+                const stored = localStorage.getItem('sea_passwords');
+                return stored ? { ...defaultPwds, ...JSON.parse(stored) } : defaultPwds;
+            } catch (e) {
+                return defaultPwds;
             }
         }
 
-        // 알림 창 Modal
-        function showModal(msg, title = "알림") {
+        let teacherPasswords = getStoredPasswords();
+        window.teacherPasswords = teacherPasswords;
+        let db = getStoredInvoices();
+        window.db = db;
+
+        let loggedInTeacher = null;
+        window.loggedInTeacher = loggedInTeacher;
+
+        let items = [];
+
+        function initTheme() {
+            const isDark = localStorage.getItem('sea_theme') === 'dark' || 
+                (!('sea_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                updateThemeUI(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeUI(false);
+            }
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('sea_theme', isDark ? 'dark' : 'light');
+            updateThemeUI(isDark);
+        }
+
+        function updateThemeUI(isDark) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            if (isDark) {
+                icon.innerText = '☀️';
+                if(text) text.innerText = '라이트';
+            } else {
+                icon.innerText = '🌙';
+                if(text) text.innerText = '다크';
+            }
+        }
+
+        const translations = {
+            ko: {
+                topNotice: "급여일: 매월 5일 | 정산 자동 관리 시스템",
+                headerSub: "원장님 정산 시스템",
+                tabDirector: "원장님 관리자 모드",
+                loginTitle: "선생님 보안 로그인",
+                loginDesc: "본인 성함과 개인 비밀번호를 입력해주세요.<br>(등록된 5명의 선생님: 김서경, 민자윤, 이미미, Candace, Marilyn)",
+                loginNamePlaceholder: "선생님 성함 (예: 이미미, Candace)",
+                loginPwdPlaceholder: "비밀번호 입력 (최초 1111)",
+                loginBtn: "🔒 로그인하기",
+                loginFooter: "* 최초 접속 시 기본 비밀번호는 <b>1111</b>입니다. 로그인 후 <b>[비밀번호 변경]</b> 버튼을 눌러 본인만의 개인 비밀번호로 반드시 변경해 주세요!",
+                workspaceTitle: "월별 수업 인보이스 작성 및 제출",
+                workspaceSub: "선생님 전용 개인 인보이스 작성함",
+                changePwdBtn: "비밀번호 변경",
+                logoutBtn: "로그아웃",
+                pwdCardTitle: "🔑 개인 보안 비밀번호 관리",
+                pwdCardDesc: "본인만 아는 안전한 비밀번호로 변경하여 계정을 보호하세요.",
+                pwdCardBtn: "비밀번호 변경하기",
+                labelWriter: "인보이스 작성자 (본인)",
+                labelMonth: "정산 대상 월 선택",
+                ruleTitle: "💡 [시급 자동 계산 규칙 안내]",
+                ruleDesc: "선택하신 월에 해당 요일이 <b>4번</b> 있으면 <b>시급 25,000원</b>, <b>5번</b> 있으면 <b>시급 20,000원</b>으로 자동 적용되며 최대 10만 원이 지급됩니다.",
+                mimiRuleTitle: "💡 [이미미 선생님 전용 안내]",
+                mimiRuleDesc: "이미미 선생님께서는 한 달 수업 횟수(기본 20회 설정)에 맞게 수업 내역을 작성하실 수 있으며, <b>단가/금액을 직접 입력</b>하실 수 있습니다.",
+                rowsTitle: "수업 상세 내역",
+                addRowBtnText: "수업 항목 추가",
+                totalText: "총 청구 금액 (Total Invoice):",
+                submitBtn: "🚀 원장님께 내 인보이스 제출하기",
+                myInvoicesTitle: "내가 제출한 인보이스 내역 (본인 전용 조회)",
+                noInvoices: "제출된 내역이 없습니다.",
+                directorDashboardTitle: "원장님 급여 및 인보이스 정산 관리 (전체 5명 통합)",
+                directorDashboardSub: "모든 선생님이 제출한 인보이스 검토 및 매월 5일 급여 지급 관리",
+                exitDirectorBtn: "나가기",
+                filterMonthText: "정산 월 필터",
+                statCountLabel: "총 제출된 인보이스",
+                statPayoutLabel: "총 지급 예정 급여 (5일)",
+                teacherListTitle: "선생님별 인보이스 목록 및 승인 상태",
+                noDirectorInvoices: "제출된 인보이스가 없습니다.",
+                modalTitle: "알림",
+                modalOkBtn: "확인",
+                authTitle: "원장님 관리자 인증",
+                authDesc: "관리자 비밀번호를 입력해주세요.",
+                authCancelBtn: "취소",
+                authConfirmBtn: "확인 및 접속",
+                pwdModalTitle: "개인 비밀번호 변경",
+                pwdModalDesc: "앞으로 로그인하실 때 사용할 새로운 비밀번호를 입력해주세요.",
+                pwdCancelBtn: "취소",
+                pwdConfirmBtn: "변경 저장"
+            },
+            en: {
+                topNotice: "Payout: 5th of every month | Auto Payroll System",
+                headerSub: "Director Payroll System",
+                tabDirector: "Director Admin Mode",
+                loginTitle: "Teacher Secure Login",
+                loginDesc: "Please enter your name and personal password.",
+                loginNamePlaceholder: "Teacher Name (e.g. Candace, 이미미)",
+                loginPwdPlaceholder: "Enter Password (Default 1111)",
+                loginBtn: "🔒 Log In",
+                loginFooter: "* Initial default password is <b>1111</b>.",
+                workspaceTitle: "Monthly Class Invoice Creation & Submission",
+                workspaceSub: "Personal Invoice Workspace",
+                changePwdBtn: "Change Password",
+                logoutBtn: "Log Out",
+                pwdCardTitle: "🔑 Personal Security Password Management",
+                pwdCardDesc: "Secure your account by changing to a private password.",
+                pwdCardBtn: "Change Password",
+                labelWriter: "Invoice Writer (You)",
+                labelMonth: "Select Settlement Month",
+                ruleTitle: "💡 [Automatic Hourly Rate Rule]",
+                ruleDesc: "4 times/month: 25,000 KRW/hr. 5 times/month: 20,000 KRW/hr.",
+                mimiRuleTitle: "💡 [Mimi Lee Special Notice]",
+                mimiRuleDesc: "Custom rate entry enabled.",
+                rowsTitle: "Class Detailed Records",
+                addRowBtnText: "Add Class Item",
+                totalText: "Total Invoice Amount:",
+                submitBtn: "🚀 Submit Invoice to Director",
+                myInvoicesTitle: "My Submitted Invoices (Personal View)",
+                noInvoices: "No submitted invoices found.",
+                directorDashboardTitle: "Director Payroll & Invoice Management",
+                directorDashboardSub: "Review submitted invoices and manage monthly salary payouts on the 5th",
+                exitDirectorBtn: "Exit",
+                filterMonthText: "Month Filter",
+                statCountLabel: "Total Submitted Invoices",
+                statPayoutLabel: "Total Payout Due (5th)",
+                teacherListTitle: "Teacher Invoice List & Approval Status",
+                noDirectorInvoices: "No submitted invoices found.",
+                modalTitle: "Notice",
+                modalOkBtn: "OK",
+                authTitle: "Director Admin Authentication",
+                authDesc: "Please enter the admin password.",
+                authCancelBtn: "Cancel",
+                authConfirmBtn: "Confirm & Enter",
+                pwdModalTitle: "Change Personal Password",
+                pwdModalDesc: "Please enter your new password.",
+                pwdCancelBtn: "Cancel",
+                pwdConfirmBtn: "Save Changes"
+            }
+        };
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const t = translations[currentLang];
+            document.getElementById('topNoticeText').innerText = t.topNotice;
+            document.getElementById('headerSubText').innerText = t.headerSub;
+            document.getElementById('tabDirectorText').innerText = t.tabDirector;
+            document.getElementById('loginTitle').innerText = t.loginTitle;
+            document.getElementById('loginDesc').innerHTML = t.loginDesc;
+            document.getElementById('loginTeacherName').placeholder = t.loginNamePlaceholder;
+            document.getElementById('loginTeacherPassword').placeholder = t.loginPwdPlaceholder;
+            document.getElementById('loginBtnText').innerText = t.loginBtn;
+            document.getElementById('loginFooterText').innerHTML = t.loginFooter;
+            document.getElementById('workspaceTitle').innerHTML = `<span>📄</span> ${t.workspaceTitle}`;
+            document.getElementById('workspaceSubText').innerText = t.workspaceSub;
+            document.getElementById('changePwdBtnText').innerText = t.changePwdBtn;
+            document.getElementById('logoutBtnText').innerText = t.logoutBtn;
+            document.getElementById('pwdCardTitle').innerText = t.pwdCardTitle;
+            document.getElementById('pwdCardDesc').innerText = t.pwdCardDesc;
+            document.getElementById('pwdCardBtnText').innerText = t.pwdCardBtn;
+            document.getElementById('labelWriter').innerText = t.labelWriter;
+            document.getElementById('labelMonth').innerText = t.labelMonth;
+            document.getElementById('ruleTitle').innerText = t.ruleTitle;
+            document.getElementById('ruleDesc').innerHTML = t.ruleDesc;
+            document.getElementById('mimiRuleTitle').innerText = t.mimiRuleTitle;
+            document.getElementById('mimiRuleDesc').innerHTML = t.mimiRuleDesc;
+            document.getElementById('rowsTitleText').innerHTML = `<span>📋</span> ${t.rowsTitle}`;
+            document.getElementById('addRowBtnText').innerText = t.addRowBtnText;
+            document.getElementById('totalText').innerText = t.totalText;
+            document.getElementById('submitBtnText').innerText = t.submitBtn;
+            document.getElementById('myInvoicesTitle').innerHTML = `<span>📤</span> ${t.myInvoicesTitle}`;
+            document.getElementById('directorDashboardTitle').innerText = t.directorDashboardTitle;
+            document.getElementById('directorDashboardSub').innerText = t.directorDashboardSub;
+            document.getElementById('exitDirectorBtn').innerText = t.exitDirectorBtn;
+            document.getElementById('filterMonthText').innerText = t.filterMonthText;
+            document.getElementById('statCountLabel').innerText = t.statCountLabel;
+            document.getElementById('statPayoutLabel').innerText = t.statPayoutLabel;
+            document.getElementById('teacherListTitle').innerText = t.teacherListTitle;
+            document.getElementById('modalTitle').innerText = t.modalTitle;
+            document.getElementById('modalOkBtn').innerText = t.modalOkBtn;
+            document.getElementById('authTitle').innerHTML = `<span>🔒</span> ${t.authTitle}`;
+            document.getElementById('authDesc').innerText = t.authDesc;
+            document.getElementById('authCancelBtn').innerText = t.authCancelBtn;
+            document.getElementById('authConfirmBtn').innerText = t.authConfirmBtn;
+            document.getElementById('pwdModalTitle').innerHTML = `<span>🔑</span> ${t.pwdModalTitle}`;
+            document.getElementById('pwdModalDesc').innerText = t.pwdModalDesc;
+            document.getElementById('pwdCancelBtn').innerText = t.pwdCancelBtn;
+            document.getElementById('pwdConfirmBtn').innerText = t.pwdConfirmBtn;
+
+            if (loggedInTeacher) {
+                renderMyInvoices();
+            }
+            if (!document.getElementById('viewDirector').classList.contains('hidden')) {
+                renderDirectorDashboard();
+            }
+        }
+
+        function resetItemsForTeacher(teacherName) {
+            const count = (teacherName === '이미미') ? 4 : 5;
+            items = [];
+            for (let i = 0; i < count; i++) {
+                items.push({ 
+                    date: '', 
+                    originalDay: 6, 
+                    hours: 1, 
+                    rate: (teacherName === '이미미' ? 25000 : 20000), 
+                    topics: '' 
+                });
+            }
+        }
+
+        function showAlert(title, msg) {
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalText').innerText = msg;
             document.getElementById('modalBox').classList.remove('hidden');
@@ -334,40 +663,18 @@
 
         function closeModal() {
             document.getElementById('modalBox').classList.add('hidden');
+            const modalOkBtn = document.getElementById('modalOkBtn');
+            const btnContainer = document.getElementById('customConfirmContainer');
+            if (modalOkBtn) modalOkBtn.classList.remove('hidden');
+            if (btnContainer) btnContainer.classList.add('hidden');
         }
 
-        // 다크모드 전환
-        function toggleDarkMode() {
-            document.documentElement.classList.toggle('dark');
-            const isDark = document.documentElement.classList.contains('dark');
-            document.getElementById('themeIcon').innerText = isDark ? '🌙' : '☀️';
-            document.getElementById('themeText').innerText = isDark ? '다크' : '라이트';
-        }
-
-        // 홈 이동
-        function goHome() {
-            switchMode('teacher');
-        }
-
-        // 모드 전환
-        function switchMode(mode) {
-            const teacherView = document.getElementById('viewTeacher');
-            const directorView = document.getElementById('viewDirector');
-            if (mode === 'director') {
-                teacherView.classList.add('hidden');
-                directorView.classList.remove('hidden');
-                renderDirectorDashboard();
-            } else {
-                directorView.classList.add('hidden');
-                teacherView.classList.remove('hidden');
-            }
-        }
-
-        // 원장님 비밀번호 모달
         function openAuthModal() {
             document.getElementById('adminPasswordInput').value = '';
             document.getElementById('authModal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('adminPasswordInput').focus(), 100);
+            setTimeout(() => {
+                document.getElementById('adminPasswordInput').focus();
+            }, 100);
         }
 
         function closeAuthModal() {
@@ -375,70 +682,21 @@
         }
 
         function verifyAdminPassword() {
-            const pass = document.getElementById('adminPasswordInput').value.trim();
-            if (pass === ADMIN_PASS) {
+            const val = document.getElementById('adminPasswordInput').value.trim();
+            if (val === "1234") {
                 closeAuthModal();
                 switchMode('director');
             } else {
-                showModal('원장님 비밀번호가 올바르지 않습니다. (기본: 1234)', '인증 실패');
+                showAlert(currentLang === 'ko' ? "인증 실패" : "Authentication Failed", currentLang === 'ko' ? "관리자 비밀번호가 올바르지 않습니다." : "Incorrect admin password.");
             }
         }
 
-        // 선생님 로그인
-        function loginTeacher() {
-            const inputName = document.getElementById('loginTeacherName').value.trim();
-            const inputPass = document.getElementById('loginTeacherPassword').value.trim();
-
-            if (!inputName || !inputPass) {
-                showModal('성함과 비밀번호를 모두 입력해주세요.');
-                return;
-            }
-
-            const matchedTeacher = VALID_TEACHERS.find(t => t.toLowerCase() === inputName.toLowerCase());
-            if (!matchedTeacher) {
-                showModal(`등록되지 않은 선생님 이름입니다.\n(등록된 목록: ${VALID_TEACHERS.join(', ')})`, '로그인 실패');
-                return;
-            }
-
-            const passwords = getPasswords();
-            if (passwords[matchedTeacher] !== inputPass) {
-                showModal('비밀번호가 올바르지 않습니다. (최초 접속시 1111)', '로그인 실패');
-                return;
-            }
-
-            window.loggedInTeacher = matchedTeacher;
-            document.getElementById('loggedInTeacherBadge').innerText = matchedTeacher;
-            document.getElementById('displayTeacherName').value = matchedTeacher;
-
-            document.getElementById('teacherLoginCard').classList.add('hidden');
-            document.getElementById('teacherWorkspace').classList.remove('hidden');
-
-            // 규칙 제어 (이미미 선생님 전용)
-            if (matchedTeacher === '이미미') {
-                document.getElementById('standardRuleBox').classList.add('hidden');
-                document.getElementById('mimiRuleBox').classList.remove('hidden');
-            } else {
-                document.getElementById('standardRuleBox').classList.remove('hidden');
-                document.getElementById('mimiRuleBox').classList.add('hidden');
-            }
-
-            initDefaultRows();
-            renderRows();
-            renderMyInvoices();
-        }
-
-        function logoutTeacher() {
-            window.loggedInTeacher = null;
-            document.getElementById('loginTeacherPassword').value = '';
-            document.getElementById('teacherWorkspace').classList.add('hidden');
-            document.getElementById('teacherLoginCard').classList.remove('hidden');
-        }
-
-        // 비밀번호 변경 모달
         function openPasswordChangeModal() {
             document.getElementById('newPasswordInput').value = '';
             document.getElementById('pwdModal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('newPasswordInput').focus(), 100);
+            setTimeout(() => {
+                document.getElementById('newPasswordInput').focus();
+            }, 100);
         }
 
         function closePasswordChangeModal() {
@@ -446,234 +704,559 @@
         }
 
         function saveNewPassword() {
-            const newPass = document.getElementById('newPasswordInput').value.trim();
-            if (!newPass || newPass.length < 4) {
-                showModal('비밀번호는 최소 4자리 이상 입력해주세요.');
+            const newPwd = document.getElementById('newPasswordInput').value.trim();
+            if (!newPwd || newPwd.length < 2) {
+                showAlert(currentLang === 'ko' ? "입력 오류" : "Input Error", currentLang === 'ko' ? "유효한 비밀번호를 입력해주세요." : "Please enter a valid password.");
                 return;
             }
-            const passwords = getPasswords();
-            passwords[window.loggedInTeacher] = newPass;
-            localStorage.setItem('sea_teacher_passwords', JSON.stringify(passwords));
+            if (newPwd === '1234') {
+                showAlert(currentLang === 'ko' ? "사용 불가" : "Not Allowed", currentLang === 'ko' ? "'1234'는 원장님 관리자 전용 비밀번호입니다." : "'1234' is reserved for director.");
+                return;
+            }
+
+            teacherPasswords[loggedInTeacher] = newPwd;
+            window.teacherPasswords[loggedInTeacher] = newPwd;
+            localStorage.setItem('sea_passwords', JSON.stringify(window.teacherPasswords));
+
             closePasswordChangeModal();
-            showModal('개인 비밀번호가 성공적으로 변경되었습니다!');
+            showAlert(currentLang === 'ko' ? "변경 완료" : "Password Changed", currentLang === 'ko' ? `[${loggedInTeacher}] 선생님의 개인 비밀번호가 안전하게 변경되었습니다.` : `Password updated.`);
         }
 
-        // 인보이스 데이터 계산
-        function getDaysInMonthCount(yearMonth, dayOfWeek) {
-            const [y, m] = yearMonth.split('-').map(Number);
-            const daysCount = new Date(y, m, 0).getDate();
+        function goHome() {
+            logoutTeacher();
+            switchMode('teacher');
+        }
+
+        function loginTeacher() {
+            const nameInput = document.getElementById('loginTeacherName');
+            const pwdInput = document.getElementById('loginTeacherPassword');
+            const name = nameInput.value.trim();
+            const pwd = pwdInput.value.trim();
+
+            if (!name) {
+                showAlert(currentLang === 'ko' ? "입력 오류" : "Input Error", currentLang === 'ko' ? "선생님 성함을 입력해주세요." : "Please enter your teacher name.");
+                return;
+            }
+
+            const activePwds = window.teacherPasswords || teacherPasswords;
+
+            if (!activePwds[name]) {
+                showAlert(currentLang === 'ko' ? "등록되지 않은 성함" : "Unregistered Name", currentLang === 'ko' ? `[${name}] 선생님은 등록된 강사 명단에 없습니다.` : `[${name}] is not in the list.`);
+                return;
+            }
+
+            if (pwd !== activePwds[name]) {
+                showAlert(currentLang === 'ko' ? "비밀번호 불일치" : "Incorrect Password", currentLang === 'ko' ? "개인 비밀번호가 올바르지 않습니다." : "Incorrect personal password.");
+                return;
+            }
+
+            loggedInTeacher = name;
+            window.loggedInTeacher = loggedInTeacher;
+            document.getElementById('loggedInTeacherBadge').innerText = loggedInTeacher;
+            document.getElementById('displayTeacherName').value = loggedInTeacher;
+
+            const standardRuleBox = document.getElementById('standardRuleBox');
+            const mimiRuleBox = document.getElementById('mimiRuleBox');
+
+            if (loggedInTeacher === 'Candace' || loggedInTeacher === 'Marilyn') {
+                standardRuleBox.classList.add('hidden');
+                mimiRuleBox.classList.add('hidden');
+            } else if (loggedInTeacher === '이미미') {
+                standardRuleBox.classList.add('hidden');
+                mimiRuleBox.classList.remove('hidden');
+            } else {
+                standardRuleBox.classList.remove('hidden');
+                mimiRuleBox.classList.add('hidden');
+            }
+
+            document.getElementById('teacherLoginCard').classList.add('hidden');
+            document.getElementById('teacherWorkspace').classList.remove('hidden');
+
+            resetItemsForTeacher(loggedInTeacher);
+            renderRows();
+            renderMyInvoices();
+        }
+
+        function logoutTeacher() {
+            loggedInTeacher = null;
+            window.loggedInTeacher = null;
+            document.getElementById('loginTeacherName').value = '';
+            document.getElementById('loginTeacherPassword').value = '';
+            document.getElementById('teacherWorkspace').classList.add('hidden');
+            document.getElementById('teacherLoginCard').classList.remove('hidden');
+        }
+
+        function switchMode(mode) {
+            const vTeacher = document.getElementById('viewTeacher');
+            const vDirector = document.getElementById('viewDirector');
+
+            if (mode === 'teacher') {
+                vTeacher.classList.remove('hidden');
+                vDirector.classList.add('hidden');
+                if (loggedInTeacher) {
+                    renderMyInvoices();
+                }
+            } else {
+                vTeacher.classList.add('hidden');
+                vDirector.classList.remove('hidden');
+                renderDirectorDashboard();
+            }
+        }
+
+        function countWeekdayInMonth(year, month, targetDayOfWeek) {
             let count = 0;
-            for (let day = 1; day <= daysCount; day++) {
-                const d = new Date(y, m - 1, day);
-                if (d.getDay() === dayOfWeek) count++;
+            const date = new Date(year, month - 1, 1);
+            while (date.getMonth() === month - 1) {
+                if (date.getDay() === targetDayOfWeek) {
+                    count++;
+                }
+                date.setDate(date.getDate() + 1);
             }
             return count;
         }
 
-        function initDefaultRows() {
-            rowsData = [
-                { title: '월요일 수업', dayOfWeek: 1, times: 4, rate: 25000 },
-                { title: '수요일 수업', dayOfWeek: 3, times: 4, rate: 25000 },
-                { title: '금요일 수업', dayOfWeek: 5, times: 4, rate: 25000 }
-            ];
+        function handleDateChange(idx, dateStr) {
+            if (items[idx]) {
+                items[idx].date = dateStr;
+                renderRows();
+            }
+        }
+
+        function updateOriginalDay(idx, dayVal) {
+            if (items[idx]) {
+                items[idx].originalDay = parseInt(dayVal, 10);
+                
+                if (loggedInTeacher === 'Candace') {
+                    items[idx].rate = 1.25;
+                    items[idx].hours = 0.5;
+                } else if (loggedInTeacher === 'Marilyn') {
+                    items[idx].rate = 10000;
+                    items[idx].hours = 0.75;
+                } else if (loggedInTeacher === '이미미') {
+                    // 단가 유지
+                } else {
+                    const monthVal = document.getElementById('invoiceMonth').value;
+                    const parts = monthVal.split('-');
+                    if (parts.length === 2) {
+                        const year = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10);
+                        const totalOccurrences = countWeekdayInMonth(year, month, items[idx].originalDay);
+                        if (totalOccurrences === 4) {
+                            items[idx].rate = 25000;
+                        } else if (totalOccurrences >= 5) {
+                            items[idx].rate = 20000;
+                        } else {
+                            items[idx].rate = 25000;
+                        }
+                    }
+                }
+                renderRows();
+            }
+        }
+
+        function updateItem(idx, field, val) {
+            if (items[idx]) {
+                items[idx][field] = val;
+                calcTotal();
+            }
         }
 
         function addCustomRow() {
-            rowsData.push({ title: '추가 수업 항목', dayOfWeek: 1, times: 4, rate: 25000 });
+            items.push({ date: '', originalDay: 6, hours: 1, rate: (loggedInTeacher === '이미미' ? 25000 : 20000), topics: '' });
             renderRows();
         }
 
-        function removeRow(index) {
-            rowsData.splice(index, 1);
+        function removeCustomRow(idx) {
+            if (items.length <= 1) {
+                showAlert(currentLang === 'ko' ? "삭제 불가" : "Cannot Remove", currentLang === 'ko' ? "최소 1개의 수업 항목은 남아있어야 합니다." : "At least one row must remain.");
+                return;
+            }
+            items.splice(idx, 1);
             renderRows();
         }
 
         function renderRows() {
             const container = document.getElementById('rowsContainer');
-            const monthVal = document.getElementById('invoiceMonth').value;
-            const isMimi = window.loggedInTeacher === '이미미';
-
             container.innerHTML = '';
-            let grandTotal = 0;
 
-            rowsData.forEach((row, i) => {
-                if (!isMimi) {
-                    const times = getDaysInMonthCount(monthVal, row.dayOfWeek);
-                    row.times = times;
-                    row.rate = times === 5 ? 20000 : 25000;
+            const monthVal = document.getElementById('invoiceMonth').value;
+            const parts = monthVal.split('-');
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10);
+
+            items.forEach((item, idx) => {
+                if (item.originalDay === undefined) item.originalDay = 6;
+
+                if (loggedInTeacher === 'Candace') {
+                    item.rate = 1.25;
+                    item.hours = 0.5;
+                } else if (loggedInTeacher === 'Marilyn') {
+                    item.rate = 10000;
+                    item.hours = 0.75;
+                } else if (loggedInTeacher === '이미미') {
+                    if (item.rate === undefined) item.rate = 25000;
+                    if (!item.hours) item.hours = 1;
+                } else {
+                    const totalOccurrences = countWeekdayInMonth(year, month, item.originalDay);
+                    if (totalOccurrences === 4) {
+                        item.rate = 25000;
+                    } else if (totalOccurrences >= 5) {
+                        item.rate = 20000;
+                    } else {
+                        item.rate = 25000;
+                    }
+                    if (!item.hours) item.hours = 1;
                 }
-                const rowTotal = (row.times || 0) * (row.rate || 0);
-                grandTotal += rowTotal;
 
-                const rowDiv = document.createElement('div');
-                rowDiv.className = "bg-slate-50 dark:bg-slate-700/40 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2";
-                rowDiv.innerHTML = `
-                    <div class="flex justify-between items-center gap-2">
-                        <input type="text" value="${row.title}" onchange="rowsData[${i}].title=this.value" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 p-2 rounded-lg text-xs font-bold dark:text-white outline-none focus:border-indigo-500">
-                        ${rowsData.length > 1 ? `<button type="button" onclick="removeRow(${i})" class="text-rose-500 font-bold text-xs p-1 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg">✕</button>` : ''}
+                let sumText = '';
+                let numericSum = 0;
+                if (loggedInTeacher === 'Candace') {
+                    numericSum = 1.25;
+                    sumText = `$${numericSum.toFixed(2)} USD`;
+                } else if (loggedInTeacher === 'Marilyn') {
+                    numericSum = 10000;
+                    sumText = `${numericSum.toLocaleString()} won`;
+                } else {
+                    numericSum = (Number(item.hours) || 0) * (Number(item.rate) || 0);
+                    sumText = `${numericSum.toLocaleString()} won`;
+                }
+                
+                const div = document.createElement('div');
+                div.className = 'bg-slate-50 dark:bg-slate-700/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 relative';
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">수업 항목 #${idx + 1}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                                ${loggedInTeacher === 'Candace' ? '🇺🇸 30분 ($1.25 고정)' : (loggedInTeacher === 'Marilyn' ? '🇰🇷 45분 (10,000원 고정)' : (loggedInTeacher === '이미미' ? '✏️ 금액 자유 입력' : `시급: ${Number(item.rate).toLocaleString()}원/h`))}
+                            </span>
+                            <button type="button" onclick="removeCustomRow(${idx})" class="text-rose-500 hover:text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-950 text-xs font-bold px-2 py-0.5 rounded-md transition cursor-pointer" title="이 항목 삭제">✕ 삭제</button>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 text-center">
+                    
+                    <div class="bg-indigo-50/60 dark:bg-indigo-950/40 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between gap-2">
+                        <span class="text-[11px] font-bold text-indigo-950 dark:text-indigo-200">📌 정기 수업 요일:</span>
+                        <select onchange="updateOriginalDay(${idx}, this.value)" class="p-1.5 rounded border border-indigo-300 dark:border-indigo-700 text-xs bg-white dark:bg-slate-800 dark:text-white font-bold text-indigo-700 dark:text-indigo-300 cursor-pointer">
+                            <option value="0" ${item.originalDay === 0 ? 'selected' : ''}>일요일 (Sunday)</option>
+                            <option value="1" ${item.originalDay === 1 ? 'selected' : ''}>월요일 (Monday)</option>
+                            <option value="2" ${item.originalDay === 2 ? 'selected' : ''}>화요일 (Tuesday)</option>
+                            <option value="3" ${item.originalDay === 3 ? 'selected' : ''}>수요일 (Wednesday)</option>
+                            <option value="4" ${item.originalDay === 4 ? 'selected' : ''}>목요일 (Thursday)</option>
+                            <option value="5" ${item.originalDay === 5 ? 'selected' : ''}>금요일 (Friday)</option>
+                            <option value="6" ${item.originalDay === 6 ? 'selected' : ''}>토요일 (Saturday)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
-                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-0.5">요일/횟수</label>
-                            ${isMimi ? 
-                                `<input type="number" value="${row.times}" onchange="rowsData[${i}].times=Number(this.value); renderRows();" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 p-1.5 rounded-lg text-xs text-center font-bold dark:text-white">`
-                                : `<span class="inline-block w-full py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-lg">${row.times} 회</span>`
-                            }
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">실제 수업 날짜</label>
+                            <input type="date" value="${item.date || ''}" onchange="handleDateChange(${idx}, this.value)" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-medium cursor-pointer">
                         </div>
                         <div>
-                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-0.5">시급/단가</label>
-                            ${isMimi ?
-                                `<input type="number" value="${row.rate}" onchange="rowsData[${i}].rate=Number(this.value); renderRows();" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 p-1.5 rounded-lg text-xs text-center font-bold dark:text-white">`
-                                : `<span class="inline-block w-full py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-lg">${row.rate.toLocaleString()} 원</span>`
-                            }
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">수업 시간</label>
+                            <input type="number" value="${item.hours}" ${loggedInTeacher==='Candace'||loggedInTeacher==='Marilyn'?'readonly':''} min="0.25" step="0.25" oninput="updateItem(${idx}, 'hours', this.value)" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs ${loggedInTeacher==='Candace'||loggedInTeacher==='Marilyn'?'bg-slate-100 dark:bg-slate-800 font-bold text-indigo-700 dark:text-indigo-300 cursor-not-allowed':'bg-white dark:bg-slate-800 dark:text-white font-medium'}">
                         </div>
                         <div>
-                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-0.5">합계</label>
-                            <span class="inline-block w-full py-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-lg">${rowTotal.toLocaleString()} 원</span>
+                            <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">단가 / 지급액 (원)</label>
+                            ${loggedInTeacher === '이미미' ? 
+                                `<input type="number" value="${item.rate}" oninput="updateItem(${idx}, 'rate', this.value)" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-bold text-emerald-600 dark:text-emerald-400">` : 
+                                `<input type="text" value="${loggedInTeacher==='Candace'?'$'+item.rate.toFixed(2)+' USD':Number(item.rate).toLocaleString()+'원'}" readonly class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-slate-100 dark:bg-slate-800 font-bold text-indigo-700 dark:text-indigo-300 cursor-not-allowed">`
+                            }
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">수업 내용 및 메모</label>
+                        <input type="text" value="${item.topics || ''}" oninput="updateItem(${idx}, 'topics', this.value)" placeholder="수업 주제 작성" class="w-full p-2 rounded-lg border dark:border-slate-600 text-xs bg-white dark:bg-slate-800 dark:text-white font-medium">
+                    </div>
+                    <div class="text-right text-xs font-bold text-slate-700 dark:text-slate-300 pt-1">
+                        항목 합계: <span class="text-indigo-600 dark:text-indigo-400">${sumText}</span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            calcTotal();
+        }
+
+        function calcTotal() {
+            let total = 0;
+            items.forEach(i => { 
+                if (i.date || (i.topics && i.topics.trim() !== '')) {
+                    if (loggedInTeacher === 'Candace') {
+                        total += 1.25;
+                    } else if (loggedInTeacher === 'Marilyn') {
+                        total += 10000;
+                    } else {
+                        total += (Number(i.hours) || 0) * (Number(i.rate) || 0); 
+                    }
+                }
+            });
+
+            const displayTotal = loggedInTeacher === 'Candace' ? `$${total.toFixed(2)} USD` : `${Math.round(total).toLocaleString()} won`;
+            document.getElementById('grandTotal').innerText = displayTotal;
+            return total;
+        }
+
+        function submitInvoice() {
+            const month = document.getElementById('invoiceMonth').value;
+
+            const validItems = items.filter(i => i.date || (i.topics && i.topics.trim() !== ''));
+            if (validItems.length === 0) {
+                showAlert(currentLang === 'ko' ? "입력 오류" : "Input Error", currentLang === 'ko' ? "최소 1개 이상의 수업 항목에 날짜 또는 수업 내용을 입력해주세요." : "Please enter date/topic for at least 1 class item.");
+                return;
+            }
+
+            let total = 0;
+            validItems.forEach(i => { 
+                if (loggedInTeacher === 'Candace') {
+                    total += 1.25;
+                } else if (loggedInTeacher === 'Marilyn') {
+                    total += 10000;
+                } else {
+                    total += (Number(i.hours) || 0) * (Number(i.rate) || 0); 
+                }
+            });
+
+            const editingId = window.editingInvoiceId || ('INV-' + Date.now());
+
+            const newInv = {
+                id: editingId,
+                teacherName: loggedInTeacher,
+                month: month,
+                items: validItems,
+                totalAmount: total,
+                status: '검토 대기중',
+                submittedAt: new Date().toISOString().split('T')[0]
+            };
+
+            window.editingInvoiceId = null;
+
+            if (window.saveInvoiceToCloud) {
+                window.saveInvoiceToCloud(newInv);
+            } else {
+                let currentDb = getStoredInvoices();
+                const existingIdx = currentDb.findIndex(i => i.id === newInv.id);
+                if (existingIdx >= 0) {
+                    currentDb[existingIdx] = newInv;
+                } else {
+                    currentDb.push(newInv);
+                }
+                localStorage.setItem('sea_invoices', JSON.stringify(currentDb));
+                window.db = currentDb;
+            }
+
+            renderMyInvoices();
+            renderDirectorDashboard();
+            showAlert(currentLang === 'ko' ? "제출 완료" : "Submission Complete", loggedInTeacher + " 선생님의 인보이스가 성공적으로 제출/수정되었습니다!");
+        }
+
+        function editMyInvoice(invId) {
+            const currentDb = getStoredInvoices();
+            const inv = currentDb.find(i => i.id === invId);
+            if (!inv) return;
+
+            window.editingInvoiceId = inv.id;
+            document.getElementById('invoiceMonth').value = inv.month;
+
+            items = JSON.parse(JSON.stringify(inv.items));
+            renderRows();
+
+            document.getElementById('teacherWorkspace').scrollIntoView({ behavior: 'smooth' });
+            showAlert("수정 모드", `[${inv.month}] 제출 내역을 불러왔습니다. 내용 수정 후 다시 [제출하기]를 눌러주세요.`);
+        }
+
+        function renderMyInvoices() {
+            const listEl = document.getElementById('myInvoicesList');
+            if (!listEl || !loggedInTeacher) return;
+
+            const currentDb = getStoredInvoices();
+            const myInvoices = currentDb.filter(i => i.teacherName === loggedInTeacher);
+
+            if (myInvoices.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 py-3 text-center">${translations[currentLang].noInvoices}</p>`;
+                return;
+            }
+
+            listEl.innerHTML = '';
+            myInvoices.sort((a,b) => b.id.localeCompare(a.id)).forEach(inv => {
+                const isUSD = inv.teacherName === 'Candace';
+                const totalStr = isUSD ? `$${inv.totalAmount.toFixed(2)} USD` : `${Math.round(inv.totalAmount).toLocaleString()} 원`;
+                
+                const div = document.createElement('div');
+                div.className = 'bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs';
+                div.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-bold text-slate-900 dark:text-white">${inv.month}</span>
+                            <span class="text-[10px] text-slate-400">(${inv.submittedAt} 제출)</span>
+                        </div>
+                        <p class="text-indigo-600 dark:text-indigo-300 font-bold mt-0.5">${totalStr} (${inv.items.length}개 수업)</p>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${inv.status==='승인완료'?'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300':(inv.status==='지급완료'?'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300':'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300')}">
+                            ${inv.status}
+                        </span>
+                        <button type="button" onclick="editMyInvoice('${inv.id}')" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:hover:bg-indigo-900 dark:text-indigo-300 text-[10px] font-bold rounded-lg transition">✏️ 수정</button>
+                        <button type="button" onclick="deleteInv('${inv.id}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950 dark:hover:bg-rose-900 dark:text-rose-400 text-[10px] font-bold rounded-lg transition">🗑️ 삭제</button>
+                    </div>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        function renderDirectorDashboard() {
+            const listEl = document.getElementById('directorInvoiceList');
+            if (!listEl) return;
+
+            // 항상 최신 로컬스토리지 데이터를 다시 불러와 동기화
+            const currentDb = getStoredInvoices();
+            const filterMonth = document.getElementById('directorFilterMonth').value;
+
+            let filtered = currentDb;
+            if (filterMonth !== 'ALL') {
+                filtered = currentDb.filter(i => i.month === filterMonth);
+            }
+
+            document.getElementById('directorTotalCount').innerText = `${filtered.length} 건`;
+
+            let krwTotal = 0;
+            let usdTotal = 0;
+            filtered.forEach(i => {
+                if (i.teacherName === 'Candace') usdTotal += i.totalAmount;
+                else krwTotal += i.totalAmount;
+            });
+
+            document.getElementById('directorTotalPayout').innerText = usdTotal > 0 
+                ? `${Math.round(krwTotal).toLocaleString()}원 / $${usdTotal.toFixed(2)} USD`
+                : `${Math.round(krwTotal).toLocaleString()} 원`;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 py-6 text-center">${translations[currentLang].noDirectorInvoices}</p>`;
+                return;
+            }
+
+            listEl.innerHTML = '';
+            filtered.sort((a,b) => b.id.localeCompare(a.id)).forEach(inv => {
+                const isUSD = inv.teacherName === 'Candace';
+                const totalStr = isUSD ? `$${inv.totalAmount.toFixed(2)} USD` : `${Math.round(inv.totalAmount).toLocaleString()} 원`;
+
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 dark:bg-slate-700/40 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2';
+                card.innerHTML = `
+                    <div class="flex justify-between items-center border-b dark:border-slate-700 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-sm text-slate-900 dark:text-white">${inv.teacherName} 선생님</span>
+                            <span class="text-xs bg-slate-200 dark:bg-slate-600 px-2 py-0.5 rounded-lg text-slate-700 dark:text-slate-300 font-semibold">${inv.month}</span>
+                        </div>
+                        <span class="text-emerald-600 dark:text-emerald-400 font-black text-sm">${totalStr}</span>
+                    </div>
+
+                    <div class="text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+                        <p class="font-semibold text-slate-500 dark:text-slate-400">수업 내역 (${inv.items.length}건):</p>
+                        <ul class="list-disc list-inside space-y-0.5 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                            ${inv.items.map(it => `<li>${it.date || '날짜미기재'} - ${it.topics || '주제미기재'} (${it.hours}h)</li>`).join('')}
+                        </ul>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-1">
+                        <span class="text-[10px] text-slate-400">제출일: ${inv.submittedAt}</span>
+                        <div class="flex items-center gap-1.5">
+                            <select onchange="changeStatus('${inv.id}', this.value)" class="text-xs p-1 rounded-lg border dark:border-slate-600 font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-white cursor-pointer">
+                                <option value="검토 대기중" ${inv.status==='검토 대기중'?'selected':''}>검토 대기중</option>
+                                <option value="승인완료" ${inv.status==='승인완료'?'selected':''}>승인완료</option>
+                                <option value="지급완료" ${inv.status==='지급완료'?'selected':''}>지급완료 (5일)</option>
+                            </select>
+                            <button type="button" onclick="deleteInv('${inv.id}')" class="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-950 dark:hover:bg-rose-900 dark:text-rose-300 text-[11px] font-bold rounded-lg transition">삭제</button>
                         </div>
                     </div>
                 `;
-                container.appendChild(rowDiv);
+                listEl.appendChild(card);
             });
-
-            document.getElementById('grandTotal').innerText = `${grandTotal.toLocaleString()} won`;
         }
 
-        // 인보이스 제출
-        function submitInvoice() {
-            if (!window.loggedInTeacher) return;
-            const monthVal = document.getElementById('invoiceMonth').value;
-            const invoices = getInvoices();
-
-            let total = 0;
-            const details = rowsData.map(r => {
-                const rowTotal = r.times * r.rate;
-                total += rowTotal;
-                return { title: r.title, times: r.times, rate: r.rate, total: rowTotal };
-            });
-
-            const newInvoice = {
-                id: Date.now().toString(),
-                teacher: window.loggedInTeacher,
-                month: monthVal,
-                date: new Date().toLocaleDateString('ko-KR'),
-                details: details,
-                totalAmount: total,
-                status: '제출됨 (Pending)'
-            };
-
-            // 기존 동일 월 제출이 있다면 덮어쓰기/갱신
-            const existingIdx = invoices.findIndex(i => i.teacher === window.loggedInTeacher && i.month === monthVal);
-            if (existingIdx >= 0) {
-                invoices[existingIdx] = newInvoice;
-            } else {
-                invoices.push(newInvoice);
-            }
-
-            saveInvoices(invoices);
-            renderMyInvoices();
-            showModal(`${monthVal} 인보이스가 성공적으로 원장님께 제출되었습니다!`, '제출 완료');
-        }
-
-        // 내 제출 내역
-        function renderMyInvoices() {
-            const container = document.getElementById('myInvoicesList');
-            const invoices = getInvoices().filter(i => i.teacher === window.loggedInTeacher);
-
-            if (invoices.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 py-3 text-center">제출된 인보이스가 없습니다.</p>`;
-                return;
-            }
-
-            container.innerHTML = invoices.map(i => `
-                <div class="p-3 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 rounded-xl flex justify-between items-center text-xs">
-                    <div>
-                        <span class="font-bold text-slate-800 dark:text-slate-100">${i.month} 인보이스</span>
-                        <span class="text-[10px] text-slate-400 block">${i.date} 제출</span>
-                    </div>
-                    <div class="text-right">
-                        <span class="font-black text-indigo-600 dark:text-indigo-400 block">${i.totalAmount.toLocaleString()} 원</span>
-                        <span class="text-[10px] font-bold ${i.status.includes('승인') ? 'text-emerald-500' : 'text-amber-500'}">${i.status}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // 원장님 대시보드 렌더링
-        function renderDirectorDashboard() {
-            const monthFilter = document.getElementById('directorFilterMonth').value;
-            let invoices = getInvoices();
-
-            if (monthFilter !== 'ALL') {
-                invoices = invoices.filter(i => i.month === monthFilter);
-            }
-
-            document.getElementById('directorTotalCount').innerText = `${invoices.length} 건`;
-            const totalPayout = invoices.reduce((sum, item) => sum + item.totalAmount, 0);
-            document.getElementById('directorTotalPayout').innerText = `${totalPayout.toLocaleString()} 원`;
-
-            const container = document.getElementById('directorInvoiceList');
-
-            if (invoices.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 py-8 text-center bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">해당 조건에 제출된 인보이스가 없습니다.</p>`;
-                return;
-            }
-
-            container.innerHTML = invoices.map(inv => `
-                <div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
-                    <div class="flex justify-between items-center border-b dark:border-slate-700 pb-2">
-                        <div>
-                            <span class="font-bold text-sm text-indigo-600 dark:text-indigo-400">👩‍🏫 ${inv.teacher} 선생님</span>
-                            <span class="text-xs text-slate-500 dark:text-slate-400 ml-2">(${inv.month})</span>
-                        </div>
-                        <span class="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">${inv.totalAmount.toLocaleString()} 원</span>
-                    </div>
-                    <div class="space-y-1">
-                        ${inv.details.map(d => `
-                            <div class="flex justify-between text-[11px] text-slate-600 dark:text-slate-300">
-                                <span>• ${d.title} (${d.times}회 x ${d.rate.toLocaleString()}원)</span>
-                                <span class="font-semibold">${d.total.toLocaleString()}원</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="pt-2 flex justify-between items-center text-xs border-t dark:border-slate-700">
-                        <span class="text-[10px] text-slate-400">제출일: ${inv.date}</span>
-                        <div class="flex gap-2">
-                            <button onclick="updateStatus('${inv.id}', '승인 및 지급예정')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg transition">승인</button>
-                            <button onclick="deleteInvoice('${inv.id}')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-lg transition">삭제</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function updateStatus(id, newStatus) {
-            const invoices = getInvoices();
-            const inv = invoices.find(i => i.id === id);
-            if (inv) {
-                inv.status = newStatus;
-                saveInvoices(invoices);
+        function changeStatus(id, newStatus) {
+            const currentDb = getStoredInvoices();
+            const target = currentDb.find(i => i.id === id);
+            if (target) {
+                target.status = newStatus;
+                if (window.saveInvoiceToCloud) {
+                    window.saveInvoiceToCloud(target);
+                } else {
+                    localStorage.setItem('sea_invoices', JSON.stringify(currentDb));
+                }
                 renderDirectorDashboard();
-                showModal('인보이스가 승인 처리되었습니다.');
+                if (loggedInTeacher === target.teacherName) {
+                    renderMyInvoices();
+                }
+                showAlert("상태 변경 완료", `상태가 [${newStatus}](으)로 업데이트 되었습니다.`);
             }
         }
 
-        function deleteInvoice(id) {
-            let invoices = getInvoices();
-            invoices = invoices.filter(i => i.id !== id);
-            saveInvoices(invoices);
-            renderDirectorDashboard();
-            showModal('인보이스 항목이 삭제되었습니다.');
+        function deleteInv(id) {
+            const currentDb = getStoredInvoices();
+            const target = currentDb.find(i => i.id === id);
+            if (!target) return;
+            
+            showConfirmModal(
+                currentLang === 'ko' ? "인보이스 삭제 확인" : "Confirm Delete",
+                currentLang === 'ko' ? `[${target.month}] 인보이스 제출 내역을 정말 삭제하시겠습니까?` : `Are you sure you want to delete this invoice?`,
+                function() {
+                    if (window.deleteInvoiceFromCloud) {
+                        window.deleteInvoiceFromCloud(id);
+                    } else {
+                        const updated = currentDb.filter(i => i.id !== id);
+                        localStorage.setItem('sea_invoices', JSON.stringify(updated));
+                        window.db = updated;
+                    }
+                    renderDirectorDashboard();
+                    if (loggedInTeacher && loggedInTeacher === target.teacherName) {
+                        renderMyInvoices();
+                    }
+                    showAlert(currentLang === 'ko' ? "삭제 완료" : "Deleted", currentLang === 'ko' ? "인보이스가 성공적으로 삭제되었습니다." : "Invoice has been deleted.");
+                }
+            );
         }
 
-        function changeLanguage(lang) {
-            currentLang = lang;
-            // 필요 시 UI 문구 전환 지원
+        function showConfirmModal(title, msg, onConfirmCallback) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalText').innerText = msg;
+            
+            const modalBox = document.getElementById('modalBox');
+            const modalOkBtn = document.getElementById('modalOkBtn');
+            
+            const modalContainer = modalBox.querySelector('.bg-white, .dark\\:bg-slate-800');
+            let btnContainer = document.getElementById('customConfirmContainer');
+            
+            if (!btnContainer) {
+                btnContainer = document.createElement('div');
+                btnContainer.id = 'customConfirmContainer';
+                btnContainer.className = 'flex gap-2 pt-2';
+                modalContainer.appendChild(btnContainer);
+            }
+            
+            modalOkBtn.classList.add('hidden');
+            btnContainer.classList.remove('hidden');
+            btnContainer.innerHTML = `
+                <button type="button" onclick="closeModal()" class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition">취소</button>
+                <button type="button" id="realConfirmBtn" class="w-1/2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow transition">삭제 확인</button>
+            `;
+            
+            document.getElementById('realConfirmBtn').onclick = function() {
+                closeModal();
+                if (onConfirmCallback) onConfirmCallback();
+            };
+            
+            modalBox.classList.remove('hidden');
         }
 
-        // 초기 실행
+        window.deleteInv = deleteInv;
+        window.editMyInvoice = editMyInvoice;
+        window.renderMyInvoices = renderMyInvoices;
+        window.renderDirectorDashboard = renderDirectorDashboard;
+        window.removeCustomRow = removeCustomRow;
+
         window.onload = function() {
-            getPasswords();
+            initTheme();
         };
     </script>
 </body>
